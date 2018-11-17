@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -104,7 +104,7 @@ namespace AIDAN_BIRD___Project_1
     }
     public sealed class SignalDispatcher
     {
-        private Queue<Signal> signalStack_ = new Queue<Signal>();
+        private Queue<Signal> signalQueue_ = new Queue<Signal>();
         private Timer chrono_ = new Timer();
         private Signal nextSignal_ = null;
         public SignalDispatcher()
@@ -114,7 +114,7 @@ namespace AIDAN_BIRD___Project_1
         }
         private void StartChrono_()
         {
-            nextSignal_ = signalStack_.Peek();
+            nextSignal_ = signalQueue_.Peek();
             if(nextSignal_.delay == 0)
             {
                 DispatchSignal_();
@@ -125,8 +125,8 @@ namespace AIDAN_BIRD___Project_1
         }
         private void DispatchSignal_()
         {
-            nextSignal_.dest.SendSignal(signalStack_.Dequeue());
-            if (signalStack_.Count == 0)
+            nextSignal_.dest.SendSignal(signalQueue_.Dequeue());
+            if (signalQueue_.Count == 0)
             {
                 chrono_.Enabled = false;
                 return;
@@ -135,7 +135,7 @@ namespace AIDAN_BIRD___Project_1
         }
         public void AddSignal(Signal t_next)
         {
-            signalStack_.Enqueue(t_next);
+            signalQueue_.Enqueue(t_next);
             if (!chrono_.Enabled)
                 StartChrono_();
         }

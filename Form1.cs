@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,31 +7,45 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace AIDAN_BIRD___Project_1
 {
     public class Signal
     {
-        public readonly int id;
-        public readonly int delay;
+        private uint delay_;
+        public readonly uint id;
         public readonly object data;
         public readonly ISystem dest;
-        public Signal(int t_id, object t_data, ISystem t_dest)
+        public Signal(uint t_id, object t_data, ISystem t_dest)
         {
             id = t_id;
             data = t_data;
             dest = t_dest;
-            delay = 0;
+            delay_ = 0;
         }
-        public Signal(int t_id, object t_data, ISystem t_dest, int t_delay)
+        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)
         {
             id = t_id;
             data = t_data;
             dest = t_dest;
-            delay = t_delay;
+            delay_ = t_delay;
+        }
+        public bool IsReady()
+        {
+            if ((delay_--) < 1)
+                return true;
+            return false;
+        }
+        public uint Delay
+        {
+            get { return delay_; }
         }
     }
-    public sealed class Person
+    [Serializable()]
+    public sealed class Person : ISerializable
     {
         private string firstName_;
         private string lastName_;
@@ -64,6 +78,20 @@ namespace AIDAN_BIRD___Project_1
              city_ = t_city;
              userName_ = t_userName;
         }
+        private Person(SerializationInfo info, StreamingContext context)
+        {
+            firstName_ = info.GetString("FirstName");
+            lastName_ = info.GetString("LastName");
+            city_ = info.GetString("City");
+            userName_ = info.GetString("UserName");
+        }
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("FirstName",firstName_);
+            info.AddValue("LastName",lastName_);
+            info.AddValue("City",city_);
+            info.AddValue("UserName",userName_);
+        }
     }
     public sealed class User
     {
@@ -92,87 +120,189 @@ namespace AIDAN_BIRD___Project_1
     }
     public abstract class ISystem
     {
+        public enum BaseSignals
+        {
+            SIGPING = 0
+        };
+        protected const uint SPECIAL_SIGNALS_OFFSET = 1;
+        protected readonly uint specialSignalsLength;
         protected Action<Signal>[] signalHandler_ = null;
+        protected virtual void SigPing(Signal t_signal)
+        {
+            if(t_signal.data != null)
+            {
+                try
+                {
+                    //Console.WriteLine((string)t_signal.data);
+                    MessageBox.Show((string)t_signal.data);
+                }
+                catch { }
+            }
+            Console.WriteLine("Recived SIGPING");
+        }
         public void SendSignal(Signal t_signal)
         {
             if(t_signal.id < signalHandler_.Length)
                 signalHandler_[t_signal.id](t_signal);
         }
-        public ISystem()
+        public uint ResolveSpecialSignalID(uint t_id)
         {
+            return SPECIAL_SIGNALS_OFFSET + t_id;
+        }
+        public ISystem(uint t_specialSignalsLength)
+        {
+            specialSignalsLength = t_specialSignalsLength;
+            signalHandler_ = new Action<Signal>[SPECIAL_SIGNALS_OFFSET + t_specialSignalsLength];
+            signalHandler_[(uint)BaseSignals.SIGPING] = SigPing;
         }
     }
-    public sealed class SignalDispatcher
+    public abstract class IDatabase<T> : ISystem where T : class 
     {
-        private Queue<Signal> signalQueue_ = new Queue<Signal>();
-        private Timer chrono_ = new Timer();
-        private Signal nextSignal_ = null;
-        public SignalDispatcher()
+        public readonly string rootDirPath = null;
+        private T data = null;
+        private bool isSecure;
+        private const string ext = ".bin";
+        public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, bool t_isSecure = false) : base(t_specialSignalsLength)
         {
-            chrono_.Enabled = false;
-            chrono_.Tick += (sneder, e) => DispatchSignal_();
+            rootDirPath = t_rootDirPath;
+            isSecure = t_isSecure;
         }
-        private void StartChrono_()
+        protected bool NewFile(string t_fileName)
         {
-            nextSignal_ = signalQueue_.Peek();
-            if(nextSignal_.delay == 0)
+            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            if (File.Exists(fullPath))
+                return false;
+            try
             {
-                DispatchSignal_();
-                return;
+                using (Stream fs = File.Create(fullPath));
             }
-            chrono_.Interval = nextSignal_.delay;
-            chrono_.Enabled = true;
-        }
-        private void DispatchSignal_()
-        {
-            nextSignal_.dest.SendSignal(signalQueue_.Dequeue());
-            if (signalQueue_.Count == 0)
+            catch(Exception e)
             {
-                chrono_.Enabled = false;
-                return;
+                return false;
             }
-            StartChrono_();
+            return true;
         }
-        public void AddSignal(Signal t_next)
+        protected bool WriteFile(string t_fileName, T t_object)
         {
-            signalQueue_.Enqueue(t_next);
-            if (!chrono_.Enabled)
-                StartChrono_();
+            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            if (!File.Exists(fullPath))
+                return false;
+            try
+            {
+                using(Stream fileOut = File.Open(fullPath,FileMode.Open))
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    bf.Serialize(fileOut,t_object);
+                }
+            }
+            catch(Exception e)
+            {
+                return false;
+            }
+            return true;
+        }
+        protected bool LoadFile(string t_fileName)
+        {
+            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            if (!File.Exists(fullPath))
+                return false;
+            try
+            {
+                using (Stream fileIn = File.Open(fullPath,FileMode.Open))
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    data = bf.Deserialize(fileIn) as T;
+                }
+            }
+            catch(Exception e)
+            {
+                data = null; 
+                return false;
+            }
+            return true;
         }
     }
-    public sealed class PersonsDatabase : ISystem
+    public sealed class SignalDispatcher : ISystem
     {
         public enum Signals
         {
-            SIGPING = 1
+           SIGNEW = 0 
         };
-        private const int LEN_OF_SIGNALS_ = 1;
-        private void SIGPing_(Signal t_signal)
-        {   //Recived SIGPING
-            //Console.WriteLine("Recived SIGPING");
-            //MessageBox.Show("Recived SIGPING");
-        }
-        public PersonsDatabase()
-            : base()
+        private void SigNew(Signal t_signal)
         {
-            signalHandler_ = new Action<Signal>[LEN_OF_SIGNALS_];
-            signalHandler_[(int)Signals.SIGPING] = SIGPing_;
+            Console.WriteLine("Recived SIGNEW");
+            try
+            {
+                AddSignal((Signal)t_signal.data);
+            }catch{}
+        }
+        private const int LEN_OF_SIGNALS_ = 1;
+        private const int CHRONO_UPDATE_DELAY_ = 1000; // = 1000ms
+        private List<Signal> nextSignals_ = new List<Signal>();
+        private Timer chrono_ = new Timer();
+        public SignalDispatcher() : base(LEN_OF_SIGNALS_)
+        {
+            signalHandler_[ResolveSpecialSignalID((uint)Signals.SIGNEW)] = SigNew;
+            chrono_.Enabled = false;
+            //chrono_.Interval = CHRONO_UPDATE_DELAY;
+            chrono_.Interval = CHRONO_UPDATE_DELAY_;
+            chrono_.Tick += (sneder, e) => DispatchSignal_();
+        }
+        private void DispatchSignal_()
+        {
+            Signal test = null;
+            for(int i = 0; i < nextSignals_.Count; i++)
+                if((test = nextSignals_[i]).IsReady())
+                {
+                    test.dest.SendSignal(test);
+                    nextSignals_.RemoveAt(i);
+                }
+            if (nextSignals_.Count == 0)
+                chrono_.Enabled = false;
+        }
+        public void AddSignal(Signal t_next)
+        {
+            if(t_next.Delay == 0)
+            {   //send the signal to the appropriate system immediately
+                t_next.dest.SendSignal(t_next);
+                return;
+            }
+            nextSignals_.Add(t_next);
+            chrono_.Enabled = true;
+        }
+    }
+    public sealed class PersonsDatabase : IDatabase<Person>
+    {
+        public enum Signals
+        {
+        };
+        private const int LEN_OF_SIGNALS_ = 0;
+        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_)
+        {
+            //lazy debugging && testing
+            NewFile("target");
+            WriteFile("target", new Person("asdf","asdf","asdf","asdf"));
+            LoadFile("target");
         }
     }
     public sealed class Network
     {
-        PersonsDatabase pd = new PersonsDatabase();
-        SignalDispatcher sd = new SignalDispatcher(); // DEBUG
+        //PersonsDatabase pd = new PersonsDatabase();
+        //SignalDispatcher sd = new SignalDispatcher();
         public Network()
         {
-            //SIGPING
-            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.PING,null,pd));
-            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.PING,null,pd,5000));
+            //SIGPING test
+            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd));
+            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd,5));
+            //SIGNEW test
+            //sd.AddSignal(new Signal(sd.ResolveSpecialSignalID((uint)SignalDispatcher.Signals.SIGNEW),new Signal((uint)ISystem.BaseSignals.SIGPING,"ffff",sd,5),pd,5));
         }
     }
+
     public partial class Form1 : Form
     {
-        //Network net = new Network();
+        PersonsDatabase pd = new PersonsDatabase(@"C:\Users\random\Documents\");
+        
         public Form1()
         {
             InitializeComponent();

@@ -181,14 +181,15 @@ namespace AIDAN_BIRD___Project_1
     }
     public static class ErrorHandler
     {
-        public enum FatalErrno
+        public enum FatalErrno //
         {
             PERSON_CONSTRUCT_FAIL = 0,
             PERSON_SERIAL_FAIL = 1,
             PERSON_READ_FAIL = 2,
             DATABASE_READ_FAIL = 3,
             DATABASE_WRITE_FAIL = 4,
-            DATABASE_NEW_FILE_FAIL = 5
+            DATABASE_NEW_FILE_FAIL = 5,
+            DATABASE_WRITE_TYPE_FAIL = 6
         };
         private enum Prefixno
         {
@@ -202,7 +203,8 @@ namespace AIDAN_BIRD___Project_1
             "Could not read data from file.",
             "Database could not read from file.",
             "Database could not write to file.",
-            "Database could not create new file."
+            "Database could not create new file.",
+            "Database tried to write to file but was set to wrong type"
         };
         private static readonly string[] msgPrefix =
         {
@@ -242,6 +244,20 @@ namespace AIDAN_BIRD___Project_1
             rootDirPath = t_rootDirPath;
             encoding = t_encoding;
         }
+        public bool WriteFile(string t_fileName, T t_object)
+        {
+            return writeFile_[(uint)encoding](GetFullPath(t_fileName),t_object);
+        }
+        public bool NewFile(string t_fileName)
+        {
+            return newFile_[(uint)encoding](GetFullPath(t_fileName));
+        }
+        public bool LoadFile(string t_fileName)
+        {
+            if ((data = loadFile_[(uint)encoding](GetFullPath(t_fileName)) as T) == null)
+                return false;
+            return true;
+        }
         private readonly Func<string, T, bool>[] writeFile_ =
         {
             (string t_path, T t_object) => 
@@ -265,6 +281,8 @@ namespace AIDAN_BIRD___Project_1
             },  //Write blob to file
             (string t_path, T t_object) => 
             {
+                if(typeof(T) != typeof(string))
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
                 if (!File.Exists(t_path))
                     return false;
                 try
@@ -306,6 +324,8 @@ namespace AIDAN_BIRD___Project_1
             },  //load from blob
             (string t_path) => 
             {
+                if(typeof(T) != typeof(string))
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
                 if (!File.Exists(t_path))
                     return null;
                 try
@@ -330,7 +350,7 @@ namespace AIDAN_BIRD___Project_1
                     return false;
                 try
                 {
-                    using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.BLOB])));
+                    using (Stream fs = File.Create(t_path));
                 }
                 catch
                 {
@@ -345,7 +365,8 @@ namespace AIDAN_BIRD___Project_1
                     return false;
                 try
                 {
-                    using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.TEXT])));
+                    //using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.TEXT])));
+                    using (Stream fs = File.Create(t_path));
                 }
                 catch
                 {
@@ -358,63 +379,6 @@ namespace AIDAN_BIRD___Project_1
         private string GetFullPath(string t_fileName) //
         {
             return string.Concat(rootDirPath, t_fileName, FILE_EXT[(uint)encoding]);
-        }
-        protected bool NewFile(string t_fileName)
-        {
-            string fullPath = GetFullPath(t_fileName);
-            if (File.Exists(fullPath))
-                return false;
-            try
-            {
-                using (Stream fs = File.Create(fullPath));
-            }
-            catch
-            {
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
-                return false; //extraneous
-            }
-            return true;
-        }
-        protected bool WriteFile(string t_fileName, T t_object)
-        {
-            string fullPath = GetFullPath(t_fileName);
-            if (!File.Exists(fullPath))
-                return false;
-            try
-            {
-                using(Stream fileOut = File.Open(fullPath,FileMode.Open))
-                {
-                    BinaryFormatter bf = new BinaryFormatter();
-                    bf.Serialize(fileOut,t_object);
-                }
-            }
-            catch
-            {
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
-                return false;
-            }
-            return true;
-        }
-        protected bool LoadFile(string t_fileName)
-        {
-            string fullPath = GetFullPath(t_fileName);
-            if (!File.Exists(fullPath))
-                return false;
-            try
-            {
-                using (Stream fileIn = File.Open(fullPath,FileMode.Open))
-                {
-                    BinaryFormatter bf = new BinaryFormatter();
-                    data = bf.Deserialize(fileIn) as T;
-                }
-            }
-            catch
-            {   //TODO: assert on error
-                //ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
-                data = null; 
-                return false;
-            }
-            return true;
         }
     }
     public sealed class SignalDispatcher : ISystem
@@ -477,13 +441,13 @@ namespace AIDAN_BIRD___Project_1
         {
             return new Person(t_firstName, t_lastName, t_city, t_userName, (nextPersonId_++));
         }
-        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_)
+        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_, IDatabase<Person>.Encoding.BLOB)
         {
             //lazy debugging && testing
-            NewFile("target");
-            WriteFile("target", BuildPerson("asdf","asdf","asdf","asdf"));
+            //NewFile("target");
+            //WriteFile("target", BuildPerson("asdf","asdf","asdf","asdf"));
             LoadFile("target");
-            throw new Exception("lazy debugging finished"); //debug assert
+            //throw new Exception("lazy debugging finished"); //debug assert
         }
     }
     public sealed class Network
@@ -505,6 +469,8 @@ namespace AIDAN_BIRD___Project_1
         public string salt = null;
         public string id = null;
     }
+
+    /*
     public sealed class PasswordDatabase : IDatabase<Password>
     {
         private const int LEN_OF_SIGNALS_ = 0;
@@ -513,6 +479,8 @@ namespace AIDAN_BIRD___Project_1
 
         }
     }
+    */
+
     public partial class Form1 : Form
     {
         PersonsDatabase pd = new PersonsDatabase(@"C:\Users\random\Documents\");

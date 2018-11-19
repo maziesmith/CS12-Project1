@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography;
 
 namespace AIDAN_BIRD___Project_1
 {
@@ -51,7 +52,13 @@ namespace AIDAN_BIRD___Project_1
         private string lastName_;
         private string city_;
         private string userName_;
-        public readonly ulong id;
+        private ulong id_;
+        public readonly Password password;
+        public ulong ID
+        {
+            get { return id_; }
+            set { id_ = value; }
+        }
         public string FirstName
         {
             get { return firstName_; }
@@ -72,24 +79,27 @@ namespace AIDAN_BIRD___Project_1
             get { return userName_; }
             set { userName_ = value; }
         }
-        public Person(string t_firstName, string t_lastName, string t_city, string t_userName, ulong t_id)
+        public Person(string t_firstName, string t_lastName, string t_city, string t_userName, ulong t_id, string t_password)
         {
             if (t_firstName == null
             || t_lastName == null
             || t_city == null
-            || t_userName == null)
+            || t_userName == null
+            || t_password == null)
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_CONSTRUCT_FAIL);
-            id = t_id;
+            ID = t_id;
             firstName_ = t_firstName;
             lastName_ = t_lastName;
             city_ = t_city;
             userName_ = t_userName;
+            password = new Password(t_password);
         }
         private Person(SerializationInfo info, StreamingContext context)
         {
             try
             {
-                id = info.GetUInt64("ID");
+                password = (Password)info.GetValue("Password", typeof(Password));
+                ID = info.GetUInt64("ID");
                 firstName_ = info.GetString("FirstName");
                 lastName_ = info.GetString("LastName");
                 city_ = info.GetString("City");
@@ -104,7 +114,8 @@ namespace AIDAN_BIRD___Project_1
         {
             try
             {
-                info.AddValue("ID",id);
+                info.AddValue("Password",password);
+                info.AddValue("ID",ID);
                 info.AddValue("FirstName",firstName_);
                 info.AddValue("LastName",lastName_);
                 info.AddValue("City",city_);
@@ -224,7 +235,7 @@ namespace AIDAN_BIRD___Project_1
             return GetErrorMsg(Prefixno.WARN,errno);
         }
     }
-    public abstract class IDatabase<T> : ISystem where T : class 
+    public abstract class IDatabase<T> : ISystem where T : class, new()
     {
         public enum Encoding //
         {
@@ -238,21 +249,26 @@ namespace AIDAN_BIRD___Project_1
         };
         public readonly Encoding encoding; //
         public readonly string rootDirPath = null;
-        private T data = null;
+        protected T data = null;
         public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, Encoding t_encoding) : base(t_specialSignalsLength) //
         {
             rootDirPath = t_rootDirPath;
             encoding = t_encoding;
         }
-        public bool WriteFile(string t_fileName, T t_object)
+        public virtual bool Initalize()
+        {
+            data = new T();
+            return true;
+        }
+        public virtual bool WriteFile(string t_fileName, T t_object)
         {
             return writeFile_[(uint)encoding](GetFullPath(t_fileName),t_object);
         }
-        public bool NewFile(string t_fileName)
+        public virtual bool NewFile(string t_fileName)
         {
             return newFile_[(uint)encoding](GetFullPath(t_fileName));
         }
-        public bool LoadFile(string t_fileName)
+        public virtual bool LoadFile(string t_fileName)
         {
             if ((data = loadFile_[(uint)encoding](GetFullPath(t_fileName)) as T) == null)
                 return false;
@@ -430,24 +446,47 @@ namespace AIDAN_BIRD___Project_1
             chrono_.Enabled = true;
         }
     }
-    public sealed class PersonsDatabase : IDatabase<Person>
+    public sealed class PersonsDatabase : IDatabase<List<Person>>
     {
         public enum Signals
         {
         };
         private const int LEN_OF_SIGNALS_ = 0;
         private ulong nextPersonId_ = 0;
-        public Person BuildPerson(string t_firstName, string t_lastName, string t_city, string t_userName)
-        {
-            return new Person(t_firstName, t_lastName, t_city, t_userName, (nextPersonId_++));
+        private const int INITAL_SIZE = 10;
+        //private Dictionary<string, ulong> nameDict = new Dictionary<string, ulong>(INITAL_SIZE);
+        public void AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
+        {   
+            //TODO: restrict to unique usernames
+            data.Add(BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password));
         }
-        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_, IDatabase<Person>.Encoding.BLOB)
+        private Person BuildPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
+        {
+            return new Person(t_firstName, t_lastName, t_city, t_userName, (nextPersonId_++) - 1, t_password);
+        }
+        public bool RemovePerson(int t_id)
+        {
+            if (t_id >= data.Count)
+                return false;
+            for (int i = t_id + 1; i < data.Count; i++)
+                data[i].ID--;
+            data.RemoveAt(t_id);
+            return true;
+        }
+        //public ulong GetIDFromUserName(string t_userName)
+        //{
+        //    return nameDict[t_userName];
+        //}
+        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_, Encoding.BLOB)
         {
             //lazy debugging && testing
-            //NewFile("target");
-            //WriteFile("target", BuildPerson("asdf","asdf","asdf","asdf"));
+            Initalize();
+            NewFile("target");
+            AddPerson("asdf", "asdf", "asdf", "asdf", "mysuperstrongpassword");
+            WriteFile("target", data);
+            Initalize();
             LoadFile("target");
-            //throw new Exception("lazy debugging finished"); //debug assert
+            throw new Exception("lazy debugging finished"); //debug assert
         }
     }
     public sealed class Network
@@ -463,24 +502,80 @@ namespace AIDAN_BIRD___Project_1
             //sd.AddSignal(new Signal(sd.ResolveSpecialSignalID((uint)SignalDispatcher.Signals.SIGNEW),new Signal((uint)ISystem.BaseSignals.SIGPING,"ffff",sd,5),pd,5));
         }
     }
-    public sealed class Password
+    [Serializable()]
+    public struct Password
     {
-        public string hash = null;
-        public string salt = null;
-        public string id = null;
-    }
-
-    /*
-    public sealed class PasswordDatabase : IDatabase<Password>
-    {
-        private const int LEN_OF_SIGNALS_ = 0;
-        public PasswordDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_)
+        private byte[] hash_;
+        private byte[] salt_;
+        private const uint HASHLEN = 32;
+        public Password(string t_clearTextPassword)
         {
-
+            hash_ = new byte[HASHLEN];
+            salt_ = new byte[t_clearTextPassword.Length];
+            SetPassword(t_clearTextPassword);
+        }
+        public void SetPassword(string t_clearTextPassword)
+        {
+            byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];
+            int i = 0;
+            for (; i < t_clearTextPassword.Length; i++)
+                saltedText[i] = (byte)t_clearTextPassword[i];
+            using(RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())
+            {
+                csprng.GetBytes(salt_);
+            }
+            for(int ii = 0; ii < salt_.Length; ii++)
+                saltedText[i + ii] = salt_[ii];
+            using(SHA256Managed algo = new SHA256Managed())
+            {
+                hash_ = algo.ComputeHash(saltedText);
+            }
+        }
+        public bool TestPassword(string t_clearTextPassword)
+        {
+            byte[] saltedTest = new byte[t_clearTextPassword.Length + salt_.Length];
+            byte[] testHash;
+            int i = 0;
+            for (; i < t_clearTextPassword.Length; i++)
+                saltedTest[i] = (byte)t_clearTextPassword[i];
+            for (int ii = 0; ii < salt_.Length; ii++)
+                saltedTest[i + ii] = salt_[ii];
+            using(SHA256Managed algo = new SHA256Managed())
+            {
+                testHash = algo.ComputeHash(saltedTest);
+            }
+            for (i = 0; i < testHash.Length; i++)
+                if (testHash[i] != hash_[i])
+                    return false;
+            return true;
+        }
+        private Password(SerializationInfo info, StreamingContext context)
+        {
+            hash_ = null;
+            salt_ = null;
+            try
+            {
+                hash_ = info.GetValue("Hash",typeof(byte[])) as byte[];
+                salt_ = info.GetValue("Salt",typeof(byte[])) as byte[];
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
+            }
+        }
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            try
+            {
+                info.AddValue("Hash",hash_);
+                info.AddValue("Salt",salt_);
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
+            }
         }
     }
-    */
-
     public partial class Form1 : Form
     {
         PersonsDatabase pd = new PersonsDatabase(@"C:\Users\random\Documents\");

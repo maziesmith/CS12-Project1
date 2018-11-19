@@ -19,7 +19,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;   // for saving objects as blobs
 using System.Security.Cryptography; // for hashing passwords (SHA256)
 
-namespace AIDAN_BIRD___Project_1
+namespace cs12_project1
 {
     public sealed class Signal
     {   // Signal class is an object that is used to communicate data between systems
@@ -35,7 +35,7 @@ namespace AIDAN_BIRD___Project_1
             dest = t_dest;
             delay_ = 0;
         }
-        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)   
+        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)
         {   // Constructor for a signal object; invoked by the signal dispatcher after delay_ seconds
             // set all data members
             id = t_id;
@@ -55,7 +55,7 @@ namespace AIDAN_BIRD___Project_1
         }
     }
     [Serializable()]    //Person is serializable
-    public sealed class Person : ISerializable  
+    public class Person : ISerializable
     {   // Person class contains data about a person; Person class implements ISerializable
         private string firstName_;  // Person's fist name
         private string lastName_;   // Person's last name
@@ -124,12 +124,12 @@ namespace AIDAN_BIRD___Project_1
         {   // called when saving a person object to disk
             try
             {   // try to add all data members to the serializable list
-                info.AddValue("Password",password);
-                info.AddValue("ID",ID);
-                info.AddValue("FirstName",firstName_);
-                info.AddValue("LastName",lastName_);
-                info.AddValue("City",city_);
-                info.AddValue("UserName",userName_);
+                info.AddValue("Password", password);
+                info.AddValue("ID", ID);
+                info.AddValue("FirstName", firstName_);
+                info.AddValue("LastName", lastName_);
+                info.AddValue("City", city_);
+                info.AddValue("UserName", userName_);
             }
             catch
             {   // assert on error
@@ -137,7 +137,7 @@ namespace AIDAN_BIRD___Project_1
             }
         }
     }
-    public sealed class User
+    public class User
     {   //TODO: doc this
         private Person currentUser_ = null;
         public User()
@@ -173,7 +173,7 @@ namespace AIDAN_BIRD___Project_1
         protected Action<Signal>[] signalHandler_ = null;   // signals are mapped to functions in this array
         protected virtual void SigPing(Signal t_signal)
         {   // SIGPING; called when a system pings another system; can be overriden
-            if(t_signal.data != null)
+            if (t_signal.data != null)
             {
                 try
                 {
@@ -186,7 +186,7 @@ namespace AIDAN_BIRD___Project_1
         }
         public void SendSignal(Signal t_signal)
         {   // called when a signal is sent to the system
-            if(t_signal.id < signalHandler_.Length) // test if the signal is in range of the signal handler
+            if (t_signal.id < signalHandler_.Length) // test if the signal is in range of the signal handler
                 signalHandler_[t_signal.id](t_signal);  // invoke the function that handles this signal
         }
         public uint ResolveSpecialSignalID(uint t_id)
@@ -194,16 +194,16 @@ namespace AIDAN_BIRD___Project_1
             return SPECIAL_SIGNALS_OFFSET + t_id;   // return the offset + id
         }
         public ISystem(uint t_specialSignalsLength)
-        {
-            specialSignalsLength = t_specialSignalsLength;
-            signalHandler_ = new Action<Signal>[SPECIAL_SIGNALS_OFFSET + t_specialSignalsLength];
-            signalHandler_[(uint)BaseSignals.SIGPING] = SigPing;
+        {   // ISystem constructor; sets up the signal handler
+            specialSignalsLength = t_specialSignalsLength;  // save the amount of system specific signals
+            signalHandler_ = new Action<Signal>[SPECIAL_SIGNALS_OFFSET + t_specialSignalsLength];   // make an array of actions to contain the signal handler
+            signalHandler_[(uint)BaseSignals.SIGPING] = SigPing;    // setup the default state of the signal handler (populate with default functions)
         }
     }
     public static class ErrorHandler
     {
-        public enum FatalErrno //
-        {
+        public enum FatalErrno
+        {   // error codes for each error caused by the program; maps to an error message
             PERSON_CONSTRUCT_FAIL = 0,
             PERSON_SERIAL_FAIL = 1,
             PERSON_READ_FAIL = 2,
@@ -213,12 +213,12 @@ namespace AIDAN_BIRD___Project_1
             DATABASE_WRITE_TYPE_FAIL = 6
         };
         private enum Prefixno
-        {
+        {   // prefix id for error messages; maps to a string
             FATAL = 0,
             WARN = 1
         };
         private static readonly string[] fatalErrMsg =
-        {
+        {   // contains error messages
             "Malformed person constructor call.",
             "Could not serialize object.",
             "Could not read data from file.",
@@ -228,38 +228,38 @@ namespace AIDAN_BIRD___Project_1
             "Database tried to write to file but was set to wrong type"
         };
         private static readonly string[] msgPrefix =
-        {
+        {   // contains message prefixs
             "FATAL",
             "WARN",
         };
         private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
-        {
-            return string.Concat(msgPrefix[(uint)prefixno],": ",fatalErrMsg[(uint)errno]);
+        {   // return a formatted error message
+            return string.Concat(msgPrefix[(uint)prefixno], ": ", fatalErrMsg[(uint)errno]);
         }
         public static void AssertFatalError(FatalErrno errno)
-        {
-            throw new Exception(GetErrorMsg(Prefixno.FATAL,errno));
+        {   // assert with a formatted error message
+            throw new Exception(GetErrorMsg(Prefixno.FATAL, errno));
         }
         public static string AlertFatalError(FatalErrno errno)
-        {
-            return GetErrorMsg(Prefixno.WARN,errno);
+        {   // get a formatted warning message
+            return GetErrorMsg(Prefixno.WARN, errno);
         }
     }
     public abstract class IDatabase<T> : ISystem where T : class, new()
     {
         public enum Encoding //
-        {
+        {   // encoding id for files; maps to a file extention
             BLOB = 0,
             TEXT = 1
         };
-        private static readonly string[] FILE_EXT = //
-        {
+        private static readonly string[] FILE_EXT =
+        {   // name for file extentions used by databases
             ".bin",  //EXT_BLOB
             ".txt"   //EXT_TEXT
         };
-        public readonly Encoding encoding; //
-        public readonly string rootDirPath = null;
-        protected T data = null;
+        public readonly Encoding encoding; // governs how files should be saved; 
+        public readonly string rootDirPath = null;  // contains the path where files are looked up and saved to
+        protected T data = null;    // contains the data of type T; data is obtained from file reads
         public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, Encoding t_encoding) : base(t_specialSignalsLength) //
         {
             rootDirPath = t_rootDirPath;
@@ -269,10 +269,10 @@ namespace AIDAN_BIRD___Project_1
         {
             data = new T();
             return true;
-        }
+        }   // initialize the state of the database; can be overriden
         public virtual bool WriteFile(string t_fileName, T t_object)
         {
-            return writeFile_[(uint)encoding](GetFullPath(t_fileName),t_object);
+            return writeFile_[(uint)encoding](GetFullPath(t_fileName), t_object);
         }
         public virtual bool NewFile(string t_fileName)
         {
@@ -286,7 +286,7 @@ namespace AIDAN_BIRD___Project_1
         }
         private readonly Func<string, T, bool>[] writeFile_ =
         {
-            (string t_path, T t_object) => 
+            (string t_path, T t_object) =>
             {
                 if (!File.Exists(t_path))
                     return false;
@@ -305,7 +305,7 @@ namespace AIDAN_BIRD___Project_1
                 }
                 return true;
             },  //Write blob to file
-            (string t_path, T t_object) => 
+            (string t_path, T t_object) =>
             {
                 if(typeof(T) != typeof(string))
                     ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
@@ -327,10 +327,10 @@ namespace AIDAN_BIRD___Project_1
                 }
                 return true;
             }   //Write text to file
-        }; //
+        };  // write data to disk; file encoding is governed by the encoding member
         private readonly Func<string, object>[] loadFile_ =
         {
-            (string t_path) => 
+            (string t_path) =>
             {
                 if (!File.Exists(t_path))
                     return null;
@@ -348,7 +348,7 @@ namespace AIDAN_BIRD___Project_1
                     return null;
                 }
             },  //load from blob
-            (string t_path) => 
+            (string t_path) =>
             {
                 if(typeof(T) != typeof(string))
                     ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
@@ -367,10 +367,10 @@ namespace AIDAN_BIRD___Project_1
                     return null;
                 }
             }   //load from text
-        }; //
-        private readonly Func<string,bool>[] newFile_ =
+        };  // load a file from disk;  file encoding is governed by the encoding member
+        private readonly Func<string, bool>[] newFile_ =
         {
-            (string t_path) => 
+            (string t_path) =>
             {
                 if (File.Exists(t_path))
                     return false;
@@ -401,17 +401,17 @@ namespace AIDAN_BIRD___Project_1
                 }
                 return true;
             }   //make new text file
-        };  //
+        };  // creates a new file; the file type is governed by the encoding member
         private string GetFullPath(string t_fileName) //
         {
             return string.Concat(rootDirPath, t_fileName, FILE_EXT[(uint)encoding]);
         }
     }
-    public sealed class SignalDispatcher : ISystem
+    public class SignalDispatcher : ISystem
     {
         public enum Signals
         {
-           SIGNEW = 0 
+            SIGNEW = 0
         };
         private void SigNew(Signal t_signal)
         {
@@ -419,7 +419,8 @@ namespace AIDAN_BIRD___Project_1
             try
             {
                 AddSignal((Signal)t_signal.data);
-            }catch{}
+            }
+            catch { }
         }
         private const int LEN_OF_SIGNALS_ = 1;
         private const int CHRONO_UPDATE_DELAY_ = 1000; // = 1000ms
@@ -436,8 +437,8 @@ namespace AIDAN_BIRD___Project_1
         private void DispatchSignal_()
         {
             Signal test = null;
-            for(int i = 0; i < nextSignals_.Count; i++)
-                if((test = nextSignals_[i]).IsReady())
+            for (int i = 0; i < nextSignals_.Count; i++)
+                if ((test = nextSignals_[i]).IsReady())
                 {
                     test.dest.SendSignal(test);
                     nextSignals_.RemoveAt(i);
@@ -447,7 +448,7 @@ namespace AIDAN_BIRD___Project_1
         }
         public void AddSignal(Signal t_next)
         {
-            if(t_next.Delay == 0)
+            if (t_next.Delay == 0)
             {   //send the signal to the appropriate system immediately
                 t_next.dest.SendSignal(t_next);
                 return;
@@ -456,7 +457,7 @@ namespace AIDAN_BIRD___Project_1
             chrono_.Enabled = true;
         }
     }
-    public sealed class PersonsDatabase : IDatabase<List<Person>>
+    public class PersonsDatabase : IDatabase<List<Person>>
     {
         public enum Signals
         {
@@ -466,7 +467,7 @@ namespace AIDAN_BIRD___Project_1
         private const int INITAL_SIZE = 10;
         //private Dictionary<string, ulong> nameDict = new Dictionary<string, ulong>(INITAL_SIZE);
         public void AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
-        {   
+        {
             //TODO: restrict to unique usernames
             data.Add(BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password));
         }
@@ -499,7 +500,7 @@ namespace AIDAN_BIRD___Project_1
             throw new Exception("lazy debugging finished"); //debug assert
         }
     }
-    public sealed class Network
+    public class Network
     {
         //PersonsDatabase pd = new PersonsDatabase();
         //SignalDispatcher sd = new SignalDispatcher();
@@ -515,34 +516,34 @@ namespace AIDAN_BIRD___Project_1
     [Serializable()]
     public struct Password
     {
-        private byte[] hash_;
-        private byte[] salt_;
-        private const uint HASHLEN = 32;
+        private byte[] hash_;   // stores the hash of salted text
+        private byte[] salt_;   // stores the salt
+        private const uint HASHLEN = 32;    // length of hash in bytes
         public Password(string t_clearTextPassword)
-        {
-            hash_ = new byte[HASHLEN];
-            salt_ = new byte[t_clearTextPassword.Length];
-            SetPassword(t_clearTextPassword);
+        {   // Password constructor; sets up the password hash for authentication
+            hash_ = new byte[HASHLEN];  // make a new byte array to store the password hash
+            salt_ = new byte[t_clearTextPassword.Length];   // make a new byte array to store the salt
+            SetPassword(t_clearTextPassword);   // hash and store the password
         }
         public void SetPassword(string t_clearTextPassword)
-        {
-            byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];
+        {   // gets the hash of the password and save it to the hash_ member
+            byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];    // make a new array to hold the salted text
             int i = 0;
             for (; i < t_clearTextPassword.Length; i++)
-                saltedText[i] = (byte)t_clearTextPassword[i];
-            using(RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())
+                saltedText[i] = (byte)t_clearTextPassword[i];   // memcpy t_clearTextPassword to the saltedText buffer
+            using (RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())    // make a new csprng object for generating the salt
             {
-                csprng.GetBytes(salt_);
-            }
-            for(int ii = 0; ii < salt_.Length; ii++)
-                saltedText[i + ii] = salt_[ii];
-            using(SHA256Managed algo = new SHA256Managed())
+                csprng.GetBytes(salt_); // get the salt; populate the salt_ member with very random bytes
+            }   // destroy the csprng object after use
+            for (int ii = 0; ii < salt_.Length; ii++)
+                saltedText[i + ii] = salt_[ii]; // memcpy the salt to the salted text
+            using (SHA256Managed algo = new SHA256Managed())
             {
-                hash_ = algo.ComputeHash(saltedText);
-            }
+                hash_ = algo.ComputeHash(saltedText);   // compute the hash of the saltedtext using the SHA256 algorithm; save the hash to the hash_ member;
+            }   // destroy the algo object after use
         }
         public bool TestPassword(string t_clearTextPassword)
-        {
+        {   // test hash_ against the salted hash of t_clearTextPassword
             byte[] saltedTest = new byte[t_clearTextPassword.Length + salt_.Length];
             byte[] testHash;
             int i = 0;
@@ -550,7 +551,7 @@ namespace AIDAN_BIRD___Project_1
                 saltedTest[i] = (byte)t_clearTextPassword[i];
             for (int ii = 0; ii < salt_.Length; ii++)
                 saltedTest[i + ii] = salt_[ii];
-            using(SHA256Managed algo = new SHA256Managed())
+            using (SHA256Managed algo = new SHA256Managed())
             {
                 testHash = algo.ComputeHash(saltedTest);
             }
@@ -565,8 +566,8 @@ namespace AIDAN_BIRD___Project_1
             salt_ = null;
             try
             {
-                hash_ = info.GetValue("Hash",typeof(byte[])) as byte[];
-                salt_ = info.GetValue("Salt",typeof(byte[])) as byte[];
+                hash_ = info.GetValue("Hash", typeof(byte[])) as byte[];
+                salt_ = info.GetValue("Salt", typeof(byte[])) as byte[];
             }
             catch
             {
@@ -577,8 +578,8 @@ namespace AIDAN_BIRD___Project_1
         {
             try
             {
-                info.AddValue("Hash",hash_);
-                info.AddValue("Salt",salt_);
+                info.AddValue("Hash", hash_);
+                info.AddValue("Salt", salt_);
             }
             catch
             {
@@ -588,8 +589,7 @@ namespace AIDAN_BIRD___Project_1
     }
     public partial class Form1 : Form
     {
-        PersonsDatabase pd = new PersonsDatabase(@"C:\Users\random\Documents\");
-        
+        PersonsDatabase pd = new PersonsDatabase(@"D:\cs12-project1\");
         public Form1()
         {
             InitializeComponent();

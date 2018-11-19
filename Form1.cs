@@ -1,4 +1,11 @@
-﻿using System;
+﻿// CS12 OOP Project 1 <https://github.com/aidan-bird/CS12-Project1>
+// August 29, 2018.
+//
+// Copyright 2018, Aidan Bird.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT>.*
+//
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -6,98 +13,101 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.IO;
+using System.Windows.Forms; // for windows forms
+using System.IO;            // for file access
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Security.Cryptography;
+using System.Runtime.Serialization.Formatters.Binary;   // for saving objects as blobs
+using System.Security.Cryptography; // for hashing passwords (SHA256)
 
 namespace AIDAN_BIRD___Project_1
 {
     public sealed class Signal
-    {
-        private uint delay_;
-        public readonly uint id;
-        public readonly object data;
-        public readonly ISystem dest;
+    {   // Signal class is an object that is used to communicate data between systems
+        private uint delay_;    // time in seconds before the signal can be activated
+        public readonly uint id;    // id of the signal; maps to a function in the signal handler for each system object
+        public readonly object data;    // contains metadata about the signal; used as a parameter in the signal handler
+        public readonly ISystem dest;   // contains a reference to the destination
         public Signal(uint t_id, object t_data, ISystem t_dest)
-        {
+        {   // Constructor for a signal object with no delay; immediately invoked by the signal dispatcher
+            // set all data members; delay_ defaults to 0
             id = t_id;
             data = t_data;
             dest = t_dest;
             delay_ = 0;
         }
-        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)
-        {
+        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)   
+        {   // Constructor for a signal object; invoked by the signal dispatcher after delay_ seconds
+            // set all data members
             id = t_id;
             data = t_data;
             dest = t_dest;
             delay_ = t_delay;
         }
         public bool IsReady()
-        {
+        {   // true when delay_ is zero; otherwise, decrement delay_ and return false
             if ((delay_--) < 1)
                 return true;
             return false;
         }
         public uint Delay
-        {
+        {   // Get the delay
             get { return delay_; }
         }
     }
-    [Serializable()]
-    public sealed class Person : ISerializable
-    {
-        private string firstName_;
-        private string lastName_;
-        private string city_;
-        private string userName_;
-        private ulong id_;
-        public readonly Password password;
+    [Serializable()]    //Person is serializable
+    public sealed class Person : ISerializable  
+    {   // Person class contains data about a person; Person class implements ISerializable
+        private string firstName_;  // Person's fist name
+        private string lastName_;   // Person's last name
+        private string city_;       // Person's city
+        private string userName_;   // Person's user name
+        private ulong id_;          // Person's id; maps to a person object in a collection
+        public readonly Password password;  // Person's password object
         public ulong ID
-        {
+        {   // get/set the user ID
             get { return id_; }
             set { id_ = value; }
         }
         public string FirstName
-        {
+        {   // get/set the user's first name
             get { return firstName_; }
             set { firstName_ = value; }
         }
         public string LastName
-        {
+        {   // get/set the user's last name
             get { return lastName_; }
             set { lastName_ = value; }
         }
         public string City
-        {
+        {   // get/set the user's city
             get { return city_; }
             set { city_ = value; }
         }
         public string UserName
-        {
+        {   // get/set the user's username
             get { return userName_; }
             set { userName_ = value; }
         }
         public Person(string t_firstName, string t_lastName, string t_city, string t_userName, ulong t_id, string t_password)
-        {
+        {   // Person constructor;
             if (t_firstName == null
             || t_lastName == null
             || t_city == null
             || t_userName == null
-            || t_password == null)
+            || t_password == null)  // test if any string parameter is null; if true, assert
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_CONSTRUCT_FAIL);
+            // set all data members
             ID = t_id;
             firstName_ = t_firstName;
             lastName_ = t_lastName;
             city_ = t_city;
             userName_ = t_userName;
-            password = new Password(t_password);
+            password = new Password(t_password);    // assign a new password object to the Person's class
         }
         private Person(SerializationInfo info, StreamingContext context)
-        {
+        {   // Person constructor; used to build a new person object from a blob file
             try
-            {
+            {   // try to set all data members using data extracted from the blob
                 password = (Password)info.GetValue("Password", typeof(Password));
                 ID = info.GetUInt64("ID");
                 firstName_ = info.GetString("FirstName");
@@ -106,14 +116,14 @@ namespace AIDAN_BIRD___Project_1
                 userName_ = info.GetString("UserName");
             }
             catch
-            {
+            {   // assert on error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
             }
         }
         public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
+        {   // called when saving a person object to disk
             try
-            {
+            {   // try to add all data members to the serializable list
                 info.AddValue("Password",password);
                 info.AddValue("ID",ID);
                 info.AddValue("FirstName",firstName_);
@@ -122,13 +132,13 @@ namespace AIDAN_BIRD___Project_1
                 info.AddValue("UserName",userName_);
             }
             catch
-            {
+            {   // assert on error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
             }
         }
     }
     public sealed class User
-    {
+    {   //TODO: doc this
         private Person currentUser_ = null;
         public User()
         {
@@ -153,16 +163,16 @@ namespace AIDAN_BIRD___Project_1
         }
     }
     public abstract class ISystem
-    {
+    {   // system abstract class; connects objects to the signal dispatcher
         public enum BaseSignals
-        {
+        {   // contains a list of signals that all systems must have
             SIGPING = 0
         };
-        protected const uint SPECIAL_SIGNALS_OFFSET = 1;
-        protected readonly uint specialSignalsLength;
-        protected Action<Signal>[] signalHandler_ = null;
+        protected const uint SPECIAL_SIGNALS_OFFSET = 1;    // adding derrived system specific signals start at this offset
+        protected readonly uint specialSignalsLength;   // amount of system specific signals
+        protected Action<Signal>[] signalHandler_ = null;   // signals are mapped to functions in this array
         protected virtual void SigPing(Signal t_signal)
-        {
+        {   // SIGPING; called when a system pings another system; can be overriden
             if(t_signal.data != null)
             {
                 try
@@ -175,13 +185,13 @@ namespace AIDAN_BIRD___Project_1
             Console.WriteLine("Recived SIGPING");
         }
         public void SendSignal(Signal t_signal)
-        {
-            if(t_signal.id < signalHandler_.Length)
-                signalHandler_[t_signal.id](t_signal);
+        {   // called when a signal is sent to the system
+            if(t_signal.id < signalHandler_.Length) // test if the signal is in range of the signal handler
+                signalHandler_[t_signal.id](t_signal);  // invoke the function that handles this signal
         }
         public uint ResolveSpecialSignalID(uint t_id)
-        {
-            return SPECIAL_SIGNALS_OFFSET + t_id;
+        {   // resolve the signal to the correct mapping if the signal is system specific
+            return SPECIAL_SIGNALS_OFFSET + t_id;   // return the offset + id
         }
         public ISystem(uint t_specialSignalsLength)
         {

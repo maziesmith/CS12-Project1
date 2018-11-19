@@ -13,7 +13,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace AIDAN_BIRD___Project_1
 {
-    public class Signal
+    public sealed class Signal
     {
         private uint delay_;
         public readonly uint id;
@@ -51,6 +51,7 @@ namespace AIDAN_BIRD___Project_1
         private string lastName_;
         private string city_;
         private string userName_;
+        public readonly ulong id;
         public string FirstName
         {
             get { return firstName_; }
@@ -71,26 +72,48 @@ namespace AIDAN_BIRD___Project_1
             get { return userName_; }
             set { userName_ = value; }
         }
-        public Person(string t_firstName, string t_lastName, string t_city, string t_userName)
+        public Person(string t_firstName, string t_lastName, string t_city, string t_userName, ulong t_id)
         {
-             firstName_ = t_firstName;
-             lastName_ = t_lastName;
-             city_ = t_city;
-             userName_ = t_userName;
+            if (t_firstName == null
+            || t_lastName == null
+            || t_city == null
+            || t_userName == null)
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_CONSTRUCT_FAIL);
+            id = t_id;
+            firstName_ = t_firstName;
+            lastName_ = t_lastName;
+            city_ = t_city;
+            userName_ = t_userName;
         }
         private Person(SerializationInfo info, StreamingContext context)
         {
-            firstName_ = info.GetString("FirstName");
-            lastName_ = info.GetString("LastName");
-            city_ = info.GetString("City");
-            userName_ = info.GetString("UserName");
+            try
+            {
+                id = info.GetUInt64("ID");
+                firstName_ = info.GetString("FirstName");
+                lastName_ = info.GetString("LastName");
+                city_ = info.GetString("City");
+                userName_ = info.GetString("UserName");
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
+            }
         }
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("FirstName",firstName_);
-            info.AddValue("LastName",lastName_);
-            info.AddValue("City",city_);
-            info.AddValue("UserName",userName_);
+            try
+            {
+                info.AddValue("ID",id);
+                info.AddValue("FirstName",firstName_);
+                info.AddValue("LastName",lastName_);
+                info.AddValue("City",city_);
+                info.AddValue("UserName",userName_);
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
+            }
         }
     }
     public sealed class User
@@ -156,35 +179,205 @@ namespace AIDAN_BIRD___Project_1
             signalHandler_[(uint)BaseSignals.SIGPING] = SigPing;
         }
     }
+    public static class ErrorHandler
+    {
+        public enum FatalErrno
+        {
+            PERSON_CONSTRUCT_FAIL = 0,
+            PERSON_SERIAL_FAIL = 1,
+            PERSON_READ_FAIL = 2,
+            DATABASE_READ_FAIL = 3,
+            DATABASE_WRITE_FAIL = 4,
+            DATABASE_NEW_FILE_FAIL = 5
+        };
+        private enum Prefixno
+        {
+            FATAL = 0,
+            WARN = 1
+        };
+        private static readonly string[] fatalErrMsg =
+        {
+            "Malformed person constructor call.",
+            "Could not serialize object.",
+            "Could not read data from file.",
+            "Database could not read from file.",
+            "Database could not write to file.",
+            "Database could not create new file."
+        };
+        private static readonly string[] msgPrefix =
+        {
+            "FATAL",
+            "WARN",
+        };
+        private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
+        {
+            return string.Concat(msgPrefix[(uint)prefixno],": ",fatalErrMsg[(uint)errno]);
+        }
+        public static void AssertFatalError(FatalErrno errno)
+        {
+            throw new Exception(GetErrorMsg(Prefixno.FATAL,errno));
+        }
+        public static string AlertFatalError(FatalErrno errno)
+        {
+            return GetErrorMsg(Prefixno.WARN,errno);
+        }
+    }
     public abstract class IDatabase<T> : ISystem where T : class 
     {
+        public enum Encoding //
+        {
+            BLOB = 0,
+            TEXT = 1
+        };
+        private static readonly string[] FILE_EXT = //
+        {
+            ".bin",  //EXT_BLOB
+            ".txt"   //EXT_TEXT
+        };
+        public readonly Encoding encoding; //
         public readonly string rootDirPath = null;
         private T data = null;
-        private bool isSecure;
-        private const string ext = ".bin";
-        public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, bool t_isSecure = false) : base(t_specialSignalsLength)
+        public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, Encoding t_encoding) : base(t_specialSignalsLength) //
         {
             rootDirPath = t_rootDirPath;
-            isSecure = t_isSecure;
+            encoding = t_encoding;
+        }
+        private readonly Func<string, T, bool>[] writeFile_ =
+        {
+            (string t_path, T t_object) => 
+            {
+                if (!File.Exists(t_path))
+                    return false;
+                try
+                {
+                    using(Stream fileOut = File.Open(t_path,FileMode.Open))
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        bf.Serialize(fileOut,t_object);
+                    }
+                }
+                catch
+                {
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    return false;
+                }
+                return true;
+            },  //Write blob to file
+            (string t_path, T t_object) => 
+            {
+                if (!File.Exists(t_path))
+                    return false;
+                try
+                {
+                    using(Stream fileOut = File.Open(t_path,FileMode.Open))
+                    {
+                        StreamWriter sw = new StreamWriter(fileOut);
+                        sw.WriteLine(t_object as string);
+                        sw.Close();
+                    }
+                }
+                catch
+                {
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    return false;
+                }
+                return true;
+            }   //Write text to file
+        }; //
+        private readonly Func<string, object>[] loadFile_ =
+        {
+            (string t_path) => 
+            {
+                if (!File.Exists(t_path))
+                    return null;
+                try
+                {
+                    using (Stream fileIn = File.Open(t_path,FileMode.Open))
+                    {
+                        BinaryFormatter bf = new BinaryFormatter();
+                        return bf.Deserialize(fileIn) as T;
+                    }
+                }
+                catch
+                {   //TODO: assert on error
+                    //ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    return null;
+                }
+            },  //load from blob
+            (string t_path) => 
+            {
+                if (!File.Exists(t_path))
+                    return null;
+                try
+                {
+                    using (StreamReader sr = new StreamReader(File.Open(t_path,FileMode.Open)))
+                    {
+                        return sr.ReadToEnd();
+                    }
+                }
+                catch
+                {   //TODO: assert on error
+                    //ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    return null;
+                }
+            }   //load from text
+        }; //
+        private readonly Func<string,bool>[] newFile_ =
+        {
+            (string t_path) => 
+            {
+                if (File.Exists(t_path))
+                    return false;
+                try
+                {
+                    using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.BLOB])));
+                }
+                catch
+                {
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
+                    return false;
+                }
+                return true;
+            },  //make new blob file
+            (string t_path) =>
+            {
+                if (File.Exists(t_path))
+                    return false;
+                try
+                {
+                    using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.TEXT])));
+                }
+                catch
+                {
+                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
+                    return false;
+                }
+                return true;
+            }   //make new text file
+        };  //
+        private string GetFullPath(string t_fileName) //
+        {
+            return string.Concat(rootDirPath, t_fileName, FILE_EXT[(uint)encoding]);
         }
         protected bool NewFile(string t_fileName)
         {
-            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            string fullPath = GetFullPath(t_fileName);
             if (File.Exists(fullPath))
                 return false;
             try
             {
                 using (Stream fs = File.Create(fullPath));
             }
-            catch(Exception e)
+            catch
             {
-                return false;
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
+                return false; //extraneous
             }
             return true;
         }
         protected bool WriteFile(string t_fileName, T t_object)
         {
-            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            string fullPath = GetFullPath(t_fileName);
             if (!File.Exists(fullPath))
                 return false;
             try
@@ -195,15 +388,16 @@ namespace AIDAN_BIRD___Project_1
                     bf.Serialize(fileOut,t_object);
                 }
             }
-            catch(Exception e)
+            catch
             {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
                 return false;
             }
             return true;
         }
         protected bool LoadFile(string t_fileName)
         {
-            string fullPath = string.Concat(rootDirPath, t_fileName,ext);
+            string fullPath = GetFullPath(t_fileName);
             if (!File.Exists(fullPath))
                 return false;
             try
@@ -214,8 +408,9 @@ namespace AIDAN_BIRD___Project_1
                     data = bf.Deserialize(fileIn) as T;
                 }
             }
-            catch(Exception e)
-            {
+            catch
+            {   //TODO: assert on error
+                //ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
                 data = null; 
                 return false;
             }
@@ -277,12 +472,18 @@ namespace AIDAN_BIRD___Project_1
         {
         };
         private const int LEN_OF_SIGNALS_ = 0;
+        private ulong nextPersonId_ = 0;
+        public Person BuildPerson(string t_firstName, string t_lastName, string t_city, string t_userName)
+        {
+            return new Person(t_firstName, t_lastName, t_city, t_userName, (nextPersonId_++));
+        }
         public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_)
         {
             //lazy debugging && testing
             NewFile("target");
-            WriteFile("target", new Person("asdf","asdf","asdf","asdf"));
+            WriteFile("target", BuildPerson("asdf","asdf","asdf","asdf"));
             LoadFile("target");
+            throw new Exception("lazy debugging finished"); //debug assert
         }
     }
     public sealed class Network
@@ -298,7 +499,20 @@ namespace AIDAN_BIRD___Project_1
             //sd.AddSignal(new Signal(sd.ResolveSpecialSignalID((uint)SignalDispatcher.Signals.SIGNEW),new Signal((uint)ISystem.BaseSignals.SIGPING,"ffff",sd,5),pd,5));
         }
     }
+    public sealed class Password
+    {
+        public string hash = null;
+        public string salt = null;
+        public string id = null;
+    }
+    public sealed class PasswordDatabase : IDatabase<Password>
+    {
+        private const int LEN_OF_SIGNALS_ = 0;
+        public PasswordDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_)
+        {
 
+        }
+    }
     public partial class Form1 : Form
     {
         PersonsDatabase pd = new PersonsDatabase(@"C:\Users\random\Documents\");

@@ -21,26 +21,125 @@ using System.Security.Cryptography; // for hashing passwords (SHA256)
 
 namespace AIDAN_BIRD___Project_1
 {
-    public sealed class Signal
+    public static class PersonFactory
+    {
+        private static uint MIN_PASSWORD_LENGTH = 8;
+        private static int MIN_PASSWORD_REP_CHARS = 4;
+        public static Person BuildPerson(
+            string t_firstName,
+            string t_lastName,
+            string t_city,
+            string t_userName,
+            string t_password,
+            uint t_id,
+            ISystem t_caller)
+        {
+            if (string.IsNullOrWhiteSpace(t_firstName)
+            || string.IsNullOrWhiteSpace(t_lastName)
+            || string.IsNullOrWhiteSpace(t_city)
+            || string.IsNullOrWhiteSpace(t_userName)
+            || string.IsNullOrWhiteSpace(t_password))
+                return null;
+            if (t_password.Length < MIN_PASSWORD_LENGTH)
+                return null;
+            if (((Func<bool>)(() =>
+             {
+                 int limit;
+                 for (int i = 0; i < t_password.Length - MIN_PASSWORD_REP_CHARS; i++)
+                 {
+                     char test = t_password[i];
+                     limit = i + MIN_PASSWORD_REP_CHARS;
+                     for(i++; i < limit; i++)
+                         if (t_password[i] != test)
+                             goto tryNextChar;
+                     return true;   // bad password
+                 tryNextChar:;
+                     continue;
+                 }
+                 return false;
+             }))())
+                return null;
+            return new Person(t_firstName, t_lastName, t_city, t_userName, t_id, t_password);
+        }
+    }
+    public static class ErrorHandler
+    {
+        public enum FatalErrno
+        {   // error codes for each error caused by the program; maps to an error message
+            PERSON_CONSTRUCT_FAIL = 0,
+            PERSON_SERIAL_FAIL = 1,
+            PERSON_READ_FAIL = 2,
+            DATABASE_READ_FAIL = 3,
+            DATABASE_WRITE_FAIL = 4,
+            DATABASE_NEW_FILE_FAIL = 5,
+            DATABASE_WRITE_TYPE_FAIL = 6,
+            GENERAL_ERROR = 7
+        };
+        private enum Prefixno
+        {   // prefix id for error messages; maps to a string
+            FATAL = 0,
+            WARN = 1
+        };
+        private static readonly string[] fatalErrMsg =
+        {   // contains error messages
+            "Malformed person constructor call.",
+            "Could not serialize object.",
+            "Could not read data from file.",
+            "Database could not read from file.",
+            "Database could not write to file.",
+            "Database could not create new file.",
+            "Database tried to write to file but was set to wrong type",
+            "Default error"
+        };
+        private static readonly string[] msgPrefix =
+        {   // contains message prefixs
+            "FATAL",
+            "WARN",
+        };
+        private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
+        {   // return a formatted error message
+            return string.Concat(msgPrefix[(uint)prefixno], ": ", fatalErrMsg[(uint)errno]);
+        }
+        public static void AssertFatalError(FatalErrno errno)
+        {   // assert with a formatted error message
+            throw new Exception(GetErrorMsg(Prefixno.FATAL, errno));
+        }
+        public static string AlertFatalError(FatalErrno errno)
+        {   // get a formatted warning message
+            return GetErrorMsg(Prefixno.WARN, errno);
+        }
+    }
+    public struct ErrorSignal
+    {
+        public readonly uint errno;
+        public ErrorSignal(uint t_errno)
+        {
+            errno = t_errno;
+        }
+    }
+    public class Signal
     {   // Signal class is an object that is used to communicate data between systems
         private uint delay_;    // time in seconds before the signal can be activated
         public readonly uint id;    // id of the signal; maps to a function in the signal handler for each system object
         public readonly object data;    // contains metadata about the signal; used as a parameter in the signal handler
         public readonly ISystem dest;   // contains a reference to the destination
-        public Signal(uint t_id, object t_data, ISystem t_dest)
+        public readonly ISystem sender;   // contains a reference to the sender
+        public Signal(uint t_id, object t_data, ISystem t_dest, ISystem t_sender)
         {   // Constructor for a signal object with no delay; immediately invoked by the signal dispatcher
             // set all data members; delay_ defaults to 0
             id = t_id;
             data = t_data;
             dest = t_dest;
+            dest = t_sender;
             delay_ = 0;
         }
-        public Signal(uint t_id, object t_data, ISystem t_dest, uint t_delay)
+        public Signal(uint t_id, object t_data, ISystem t_dest, ISystem t_sender, uint t_delay)
         {   // Constructor for a signal object; invoked by the signal dispatcher after delay_ seconds
             // set all data members
             id = t_id;
             data = t_data;
             dest = t_dest;
+            dest = t_sender;
             delay_ = t_delay;
         }
         public bool IsReady()
@@ -137,83 +236,93 @@ namespace AIDAN_BIRD___Project_1
             }
         }
     }
-    public static class PersonFactory
+    [Serializable()]
+    public struct Password
     {
-        private static uint MIN_PASSWORD_LENGTH = 8;
-        private static int MIN_PASSWORD_REP_CHARS = 4;
-        public static Person BuildPerson(
-            string t_firstName,
-            string t_lastName,
-            string t_city,
-            string t_userName,
-            string t_password,
-            uint t_id,
-            ISystem t_caller)
-        {
-            if (string.IsNullOrWhiteSpace(t_firstName)
-            || string.IsNullOrWhiteSpace(t_lastName)
-            || string.IsNullOrWhiteSpace(t_city)
-            || string.IsNullOrWhiteSpace(t_userName)
-            || string.IsNullOrWhiteSpace(t_password))
-                return null;
-            if (t_password.Length < MIN_PASSWORD_LENGTH)
-                return null;
-
-            if (((Func<bool>)(() =>
-             {
-                 int limit;
-                 for (int i = 0; i < t_password.Length - MIN_PASSWORD_REP_CHARS; i++)
-                 {
-                     char test = t_password[i];
-                     limit = i + MIN_PASSWORD_REP_CHARS;
-                     for(i++; i < limit; i++)
-                         if (t_password[i] != test)
-                             goto tryNextChar;
-                     return true;   // bad password
-                 tryNextChar:;
-                     continue;
-                 }
-                 return false;
-             }))())
-                return null;
-            return new Person(t_firstName, t_lastName, t_city, t_userName, t_id, t_password);
+        private byte[] hash_;   // stores the hash of salted text
+        private byte[] salt_;   // stores the salt
+        private const uint HASHLEN = 32;    // length of hash in bytes
+        public Password(string t_clearTextPassword)
+        {   // Password constructor; sets up the password hash for authentication
+            hash_ = new byte[HASHLEN];  // make a new byte array to store the password hash
+            salt_ = new byte[t_clearTextPassword.Length];   // make a new byte array to store the salt
+            SetPassword(t_clearTextPassword);   // hash and store the password
         }
-    }
-    public class User
-    {   //TODO: doc this
-        private Person currentUser_ = null;
-        public User()
-        {
+        public void SetPassword(string t_clearTextPassword)
+        {   // gets the hash of the password and save it to the hash_ member
+            byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];    // make a new array to hold the salted text
+            int i = 0;
+            for (; i < t_clearTextPassword.Length; i++)
+                saltedText[i] = (byte)t_clearTextPassword[i];   // memcpy t_clearTextPassword to the saltedText buffer
+            using (RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())    // make a new csprng object for generating the salt
+            {
+                csprng.GetBytes(salt_); // get the salt; populate the salt_ member with very random bytes
+            }   // destroy the csprng object after use
+            for (int ii = 0; ii < salt_.Length; ii++)
+                saltedText[i + ii] = salt_[ii]; // memcpy the salt to the salted text
+            using (SHA256Managed algo = new SHA256Managed())
+            {
+                hash_ = algo.ComputeHash(saltedText);   // compute the hash of the saltedtext using the SHA256 algorithm; save the hash to the hash_ member;
+            }   // destroy the algo object after use
         }
-        public void AddFriend()
-        {
+        public bool TestPassword(string t_clearTextPassword)
+        {   // test hash_ against the salted hash of t_clearTextPassword
+            byte[] saltedTest = new byte[t_clearTextPassword.Length + salt_.Length];
+            byte[] testHash;
+            int i = 0;
+            for (; i < t_clearTextPassword.Length; i++)
+                saltedTest[i] = (byte)t_clearTextPassword[i];
+            for (int ii = 0; ii < salt_.Length; ii++)
+                saltedTest[i + ii] = salt_[ii];
+            using (SHA256Managed algo = new SHA256Managed())
+            {
+                testHash = algo.ComputeHash(saltedTest);
+            }
+            for (i = 0; i < testHash.Length; i++)
+                if (testHash[i] != hash_[i])
+                    return false;
+            return true;
         }
-        public void RemoveFriend()
+        private Password(SerializationInfo info, StreamingContext context)
         {
+            hash_ = null;
+            salt_ = null;
+            try
+            {
+                hash_ = info.GetValue("Hash", typeof(byte[])) as byte[];
+                salt_ = info.GetValue("Salt", typeof(byte[])) as byte[];
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
+            }
         }
-        public void SearchInterests()
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-        }
-        public void NewInvitation()
-        {
-        }
-        public void RemoveInvitation()
-        {
-        }
-        public void Logout()
-        {
+            try
+            {
+                info.AddValue("Hash", hash_);
+                info.AddValue("Salt", salt_);
+            }
+            catch
+            {
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
+            }
         }
     }
     public abstract class ISystem
     {   // system abstract class; connects objects to the signal dispatcher
+        protected ISystem parent;
         public enum BaseSignals
         {   // contains a list of signals that all systems must have
-            SIGPING = 0
+            SIGPING = 0,
+            SIGERR = 1
         };
         protected const uint SPECIAL_SIGNALS_OFFSET = 1;    // adding derrived system specific signals start at this offset
         protected readonly uint specialSignalsLength;   // amount of system specific signals
         protected Action<Signal>[] signalHandler_ = null;   // signals are mapped to functions in this array
-        protected virtual void SigPing(Signal t_signal)
+        public virtual void SigErr(ErrorSignal t_err) { }
+        public virtual void SigPing(Signal t_signal)
         {   // SIGPING; called when a system pings another system; can be overriden
             if (t_signal.data != null)
             {
@@ -235,56 +344,12 @@ namespace AIDAN_BIRD___Project_1
         {   // resolve the signal to the correct mapping if the signal is system specific
             return SPECIAL_SIGNALS_OFFSET + t_id;   // return the offset + id
         }
-        public ISystem(uint t_specialSignalsLength)
+        public ISystem(uint t_specialSignalsLength, ISystem t_parent)
         {   // ISystem constructor; sets up the signal handler
+            parent = t_parent;
             specialSignalsLength = t_specialSignalsLength;  // save the amount of system specific signals
             signalHandler_ = new Action<Signal>[SPECIAL_SIGNALS_OFFSET + t_specialSignalsLength];   // make an array of actions to contain the signal handler
             signalHandler_[(uint)BaseSignals.SIGPING] = SigPing;    // setup the default state of the signal handler (populate with default functions)
-        }
-    }
-    public static class ErrorHandler
-    {
-        public enum FatalErrno
-        {   // error codes for each error caused by the program; maps to an error message
-            PERSON_CONSTRUCT_FAIL = 0,
-            PERSON_SERIAL_FAIL = 1,
-            PERSON_READ_FAIL = 2,
-            DATABASE_READ_FAIL = 3,
-            DATABASE_WRITE_FAIL = 4,
-            DATABASE_NEW_FILE_FAIL = 5,
-            DATABASE_WRITE_TYPE_FAIL = 6
-        };
-        private enum Prefixno
-        {   // prefix id for error messages; maps to a string
-            FATAL = 0,
-            WARN = 1
-        };
-        private static readonly string[] fatalErrMsg =
-        {   // contains error messages
-            "Malformed person constructor call.",
-            "Could not serialize object.",
-            "Could not read data from file.",
-            "Database could not read from file.",
-            "Database could not write to file.",
-            "Database could not create new file.",
-            "Database tried to write to file but was set to wrong type"
-        };
-        private static readonly string[] msgPrefix =
-        {   // contains message prefixs
-            "FATAL",
-            "WARN",
-        };
-        private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
-        {   // return a formatted error message
-            return string.Concat(msgPrefix[(uint)prefixno], ": ", fatalErrMsg[(uint)errno]);
-        }
-        public static void AssertFatalError(FatalErrno errno)
-        {   // assert with a formatted error message
-            throw new Exception(GetErrorMsg(Prefixno.FATAL, errno));
-        }
-        public static string AlertFatalError(FatalErrno errno)
-        {   // get a formatted warning message
-            return GetErrorMsg(Prefixno.WARN, errno);
         }
     }
     public abstract class IDatabase<T> : ISystem where T : class, new()
@@ -302,7 +367,7 @@ namespace AIDAN_BIRD___Project_1
         public readonly Encoding encoding; // governs how files should be saved; 
         public readonly string rootDirPath = null;  // contains the path where files are looked up and saved to
         protected T data = null;    // contains the data of type T; data is obtained from file reads
-        public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, Encoding t_encoding) : base(t_specialSignalsLength) //
+        public IDatabase(string t_rootDirPath, uint t_specialSignalsLength, Encoding t_encoding, ISystem t_parent) : base(t_specialSignalsLength, t_parent) //
         {
             rootDirPath = t_rootDirPath;
             encoding = t_encoding;
@@ -480,7 +545,7 @@ namespace AIDAN_BIRD___Project_1
         {
             get { return singleton.Value; }
         }
-        private SignalDispatcher() : base(LEN_OF_SIGNALS_)
+        private SignalDispatcher() : base(LEN_OF_SIGNALS_, null)
         {
             signalHandler_[ResolveSpecialSignalID((uint)Signals.SIGNEW)] = SigNew;
             chrono_.Enabled = false;
@@ -527,7 +592,7 @@ namespace AIDAN_BIRD___Project_1
             data.Add(next);
             return true;
         }
-        public bool RemovePerson(int t_id)
+        private bool RemovePerson(int t_id)
         {
             if (t_id >= data.Count)
                 return false;
@@ -536,7 +601,7 @@ namespace AIDAN_BIRD___Project_1
             data.RemoveAt(t_id);
             return true;
         }
-        public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_, Encoding.BLOB)
+        public PersonsDatabase(string t_databaseRoot, ISystem t_parent) : base(t_databaseRoot, LEN_OF_SIGNALS_, Encoding.BLOB, t_parent)
         {
             //lazy debugging && testing
             Initalize();
@@ -549,100 +614,71 @@ namespace AIDAN_BIRD___Project_1
             //throw new Exception("lazy debugging finished"); //debug assert
         }
     }
-    public class Network
-    {
-        //PersonsDatabase pd = new PersonsDatabase();
-        public Network()
+    public class User
+    {   //TODO: doc this
+        private Person currentUser_ = null;
+        public User()
         {
-            //SignalDispatcher.Instance.SendSignal;
-            //SIGPING test
-            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd));
-            //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd,5));
-            //SIGNEW test
-            //sd.AddSignal(new Signal(sd.ResolveSpecialSignalID((uint)SignalDispatcher.Signals.SIGNEW),new Signal((uint)ISystem.BaseSignals.SIGPING,"ffff",sd,5),pd,5));
+        }
+        public void AddFriend()
+        {
+        }
+        public void RemoveFriend()
+        {
+        }
+        public void SearchInterests()
+        {
+        }
+        public void NewInvitation()
+        {
+        }
+        public void RemoveInvitation()
+        {
+        }
+        public void Logout()
+        {
         }
     }
-    [Serializable()]
-    public struct Password
+    public class LoginSystem : ISystem
     {
-        private byte[] hash_;   // stores the hash of salted text
-        private byte[] salt_;   // stores the salt
-        private const uint HASHLEN = 32;    // length of hash in bytes
-        public Password(string t_clearTextPassword)
-        {   // Password constructor; sets up the password hash for authentication
-            hash_ = new byte[HASHLEN];  // make a new byte array to store the password hash
-            salt_ = new byte[t_clearTextPassword.Length];   // make a new byte array to store the salt
-            SetPassword(t_clearTextPassword);   // hash and store the password
-        }
-        public void SetPassword(string t_clearTextPassword)
-        {   // gets the hash of the password and save it to the hash_ member
-            byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];    // make a new array to hold the salted text
-            int i = 0;
-            for (; i < t_clearTextPassword.Length; i++)
-                saltedText[i] = (byte)t_clearTextPassword[i];   // memcpy t_clearTextPassword to the saltedText buffer
-            using (RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())    // make a new csprng object for generating the salt
-            {
-                csprng.GetBytes(salt_); // get the salt; populate the salt_ member with very random bytes
-            }   // destroy the csprng object after use
-            for (int ii = 0; ii < salt_.Length; ii++)
-                saltedText[i + ii] = salt_[ii]; // memcpy the salt to the salted text
-            using (SHA256Managed algo = new SHA256Managed())
-            {
-                hash_ = algo.ComputeHash(saltedText);   // compute the hash of the saltedtext using the SHA256 algorithm; save the hash to the hash_ member;
-            }   // destroy the algo object after use
-        }
-        public bool TestPassword(string t_clearTextPassword)
-        {   // test hash_ against the salted hash of t_clearTextPassword
-            byte[] saltedTest = new byte[t_clearTextPassword.Length + salt_.Length];
-            byte[] testHash;
-            int i = 0;
-            for (; i < t_clearTextPassword.Length; i++)
-                saltedTest[i] = (byte)t_clearTextPassword[i];
-            for (int ii = 0; ii < salt_.Length; ii++)
-                saltedTest[i + ii] = salt_[ii];
-            using (SHA256Managed algo = new SHA256Managed())
-            {
-                testHash = algo.ComputeHash(saltedTest);
-            }
-            for (i = 0; i < testHash.Length; i++)
-                if (testHash[i] != hash_[i])
-                    return false;
-            return true;
-        }
-        private Password(SerializationInfo info, StreamingContext context)
+        private PersonsDatabase pd_;
+        public void RegisterAccount(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
         {
-            hash_ = null;
-            salt_ = null;
-            try
+            if(!pd_.AddPerson(t_firstName,t_lastName,t_city,t_userName,t_password))
             {
-                hash_ = info.GetValue("Hash", typeof(byte[])) as byte[];
-                salt_ = info.GetValue("Salt", typeof(byte[])) as byte[];
-            }
-            catch
-            {
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
+                parent.SigErr(new ErrorSignal(0));
             }
         }
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        public LoginSystem(PersonsDatabase t_pd, ISystem t_parent) : base(0, t_parent)
         {
-            try
+            if (pd_ == null)    //pd_ cannot be null; assert if null
+                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.GENERAL_ERROR);
+            pd_ = t_pd;
+        }
+    }
+    public class Network : ISystem
+    {
+        private PersonsDatabase pd;
+        public LoginSystem ls;
+        public override void SigErr(ErrorSignal t_err)
+        {
+            switch(t_err.errno)
             {
-                info.AddValue("Hash", hash_);
-                info.AddValue("Salt", salt_);
+                case 0: //cannot add person
+                    return;
             }
-            catch
-            {
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
-            }
+        }
+        public Network() : base(0, null)
+        {
+             pd = new PersonsDatabase("", this);
+             ls = new LoginSystem(pd, this);
         }
     }
     public partial class Form1 : Form
     {
-        //PersonsDatabase pd = new PersonsDatabase(@"D:\cs12-project1\");
-        PersonsDatabase pd = new PersonsDatabase(@"C: \Users\random\Documents\target");
+        Network net;
         public Form1()
         {
-            SignalDispatcher.Instance.SendSignal(new Signal(0,"asdf",pd));
             InitializeComponent();
         }
     }

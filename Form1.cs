@@ -1,4 +1,4 @@
-﻿// CS12 OOP Project 1 <https://github.com/aidan-bird/CS12-Project1>
+// CS12 OOP Project 1 <https://github.com/aidan-bird/CS12-Project1>
 // August 29, 2018.
 //
 // Copyright 2018, Aidan Bird.
@@ -19,7 +19,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;   // for saving objects as blobs
 using System.Security.Cryptography; // for hashing passwords (SHA256)
 
-namespace cs12_project1
+namespace AIDAN_BIRD___Project_1
 {
     public sealed class Signal
     {   // Signal class is an object that is used to communicate data between systems
@@ -135,6 +135,48 @@ namespace cs12_project1
             {   // assert on error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
             }
+        }
+    }
+    public static class PersonFactory
+    {
+        private static uint MIN_PASSWORD_LENGTH = 8;
+        private static int MIN_PASSWORD_REP_CHARS = 4;
+        public static Person BuildPerson(
+            string t_firstName,
+            string t_lastName,
+            string t_city,
+            string t_userName,
+            string t_password,
+            uint t_id,
+            ISystem t_caller)
+        {
+            if (string.IsNullOrWhiteSpace(t_firstName)
+            || string.IsNullOrWhiteSpace(t_lastName)
+            || string.IsNullOrWhiteSpace(t_city)
+            || string.IsNullOrWhiteSpace(t_userName)
+            || string.IsNullOrWhiteSpace(t_password))
+                return null;
+            if (t_password.Length < MIN_PASSWORD_LENGTH)
+                return null;
+
+            if (((Func<bool>)(() =>
+             {
+                 int limit;
+                 for (int i = 0; i < t_password.Length - MIN_PASSWORD_REP_CHARS; i++)
+                 {
+                     char test = t_password[i];
+                     limit = i + MIN_PASSWORD_REP_CHARS;
+                     for(i++; i < limit; i++)
+                         if (t_password[i] != test)
+                             goto tryNextChar;
+                     return true;   // bad password
+                 tryNextChar:;
+                     continue;
+                 }
+                 return false;
+             }))())
+                return null;
+            return new Person(t_firstName, t_lastName, t_city, t_userName, t_id, t_password);
         }
     }
     public class User
@@ -407,7 +449,7 @@ namespace cs12_project1
             return string.Concat(rootDirPath, t_fileName, FILE_EXT[(uint)encoding]);
         }
     }
-    public class SignalDispatcher : ISystem
+    public sealed class SignalDispatcher : ISystem
     {
         public enum Signals
         {
@@ -426,11 +468,22 @@ namespace cs12_project1
         private const int CHRONO_UPDATE_DELAY_ = 1000; // = 1000ms
         private List<Signal> nextSignals_ = new List<Signal>();
         private Timer chrono_ = new Timer();
-        public SignalDispatcher() : base(LEN_OF_SIGNALS_)
+
+        public int debugData = 0;
+
+        private static readonly Lazy<SignalDispatcher> singleton = new Lazy<SignalDispatcher>
+        (() => 
+        {
+            return new SignalDispatcher();
+        });
+        public static SignalDispatcher Instance
+        {
+            get { return singleton.Value; }
+        }
+        private SignalDispatcher() : base(LEN_OF_SIGNALS_)
         {
             signalHandler_[ResolveSpecialSignalID((uint)Signals.SIGNEW)] = SigNew;
             chrono_.Enabled = false;
-            //chrono_.Interval = CHRONO_UPDATE_DELAY;
             chrono_.Interval = CHRONO_UPDATE_DELAY_;
             chrono_.Tick += (sneder, e) => DispatchSignal_();
         }
@@ -463,17 +516,16 @@ namespace cs12_project1
         {
         };
         private const int LEN_OF_SIGNALS_ = 0;
-        private ulong nextPersonId_ = 0;
+        private uint nextPersonId_ = 0;
         private const int INITAL_SIZE = 10;
-        //private Dictionary<string, ulong> nameDict = new Dictionary<string, ulong>(INITAL_SIZE);
-        public void AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
+        public bool AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
         {
             //TODO: restrict to unique usernames
-            data.Add(BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password));
-        }
-        private Person BuildPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
-        {
-            return new Person(t_firstName, t_lastName, t_city, t_userName, (nextPersonId_++) - 1, t_password);
+            Person next;
+            if ((next = PersonFactory.BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password, (nextPersonId_++) - 1, this)) == null)
+                return false;
+            data.Add(next);
+            return true;
         }
         public bool RemovePerson(int t_id)
         {
@@ -484,28 +536,25 @@ namespace cs12_project1
             data.RemoveAt(t_id);
             return true;
         }
-        //public ulong GetIDFromUserName(string t_userName)
-        //{
-        //    return nameDict[t_userName];
-        //}
         public PersonsDatabase(string t_databaseRoot) : base(t_databaseRoot, LEN_OF_SIGNALS_, Encoding.BLOB)
         {
             //lazy debugging && testing
             Initalize();
-            NewFile("target");
-            AddPerson("asdf", "asdf", "asdf", "asdf", "mysuperstrongpassword");
-            WriteFile("target", data);
-            Initalize();
-            LoadFile("target");
-            throw new Exception("lazy debugging finished"); //debug assert
+            //NewFile("target");
+            //AddPerson("asdf", "asdf", "asdf", "asdf", "mysuperstrongpassword");
+            AddPerson("asdf", "asdf", "asdf", "asdf", "aaabaaaaa");
+            //WriteFile("target", data);
+            //Initalize();
+            //LoadFile("target");
+            //throw new Exception("lazy debugging finished"); //debug assert
         }
     }
     public class Network
     {
         //PersonsDatabase pd = new PersonsDatabase();
-        //SignalDispatcher sd = new SignalDispatcher();
         public Network()
         {
+            //SignalDispatcher.Instance.SendSignal;
             //SIGPING test
             //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd));
             //sd.AddSignal(new Signal((int)PersonsDatabase.Signals.SIGPING,null,pd,5));
@@ -589,9 +638,11 @@ namespace cs12_project1
     }
     public partial class Form1 : Form
     {
-        PersonsDatabase pd = new PersonsDatabase(@"D:\cs12-project1\");
+        //PersonsDatabase pd = new PersonsDatabase(@"D:\cs12-project1\");
+        PersonsDatabase pd = new PersonsDatabase(@"C: \Users\random\Documents\target");
         public Form1()
         {
+            SignalDispatcher.Instance.SendSignal(new Signal(0,"asdf",pd));
             InitializeComponent();
         }
     }

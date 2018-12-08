@@ -5,17 +5,22 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace app1
+namespace CS12_Project_1
 {
     class UserDialogue : Form
     {
         private User currentUser_;
         private Label lblFullname_;
+        private BindingSource bindingSource1;
+        private System.ComponentModel.IContainer components;
         private Label lblUsername_;
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.lblFullname_ = new System.Windows.Forms.Label();
             this.lblUsername_ = new System.Windows.Forms.Label();
+            this.bindingSource1 = new System.Windows.Forms.BindingSource(this.components);
+            ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).BeginInit();
             this.SuspendLayout();
             // 
             // lblFullname_
@@ -38,11 +43,12 @@ namespace app1
             // 
             // UserDialogue
             // 
-            this.ClientSize = new System.Drawing.Size(287, 225);
+            this.ClientSize = new System.Drawing.Size(655, 464);
             this.Controls.Add(this.lblUsername_);
             this.Controls.Add(this.lblFullname_);
             this.Name = "UserDialogue";
             this.Text = "User";
+            ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 

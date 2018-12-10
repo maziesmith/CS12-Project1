@@ -154,10 +154,10 @@ namespace CS12_Project_1
             switch(t_errno)
             {
                 case Errno.badAuth:
-                    lblHeader.Text = "All fields must be filled.";
+                    lblHeader.Text = "Incorrect username or password.";
                     return;
                 case Errno.emptyField:
-                    lblHeader.Text = "Incorrect username or password.";
+                    lblHeader.Text = "All fields must be filled.";
                     return;
             }
         }

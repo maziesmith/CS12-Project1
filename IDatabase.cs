@@ -167,7 +167,7 @@ namespace CS12_Project_1
         };  // creates a new file; the file type is governed by the encoding member
         private string GetFullPath(string t_fileName) //
         {
-            return string.Concat(rootDirPath, t_fileName, FILE_EXT[(uint)encoding]);
+            return string.Concat(rootDirPath,t_fileName, FILE_EXT[(uint)encoding]);
         }
     }
 }

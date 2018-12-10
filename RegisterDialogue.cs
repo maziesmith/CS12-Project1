@@ -63,13 +63,15 @@ namespace CS12_Project_1
         private ISystem parent_;
         private string lastUserName_ = null;
         private DialogStates dialogState_ = DialogStates.auth;
-        private ExitStatus exitStatus_ = ExitStatus.canceled;
+        private System.Windows.Forms.Timer tmrClose;
+        private System.ComponentModel.IContainer components;
+
         private enum DialogStates
         {
             auth,
             config
         }
-        private object exitStatus;
+        private object exitStatus = ExitStatus.canceled;
         public RegisterDialogue(ISystem t_parent, ref PersonsDatabase t_pd)
         {
             exitStatus = null;
@@ -85,6 +87,7 @@ namespace CS12_Project_1
         }
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.button1 = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnCancel = new System.Windows.Forms.Button();
@@ -95,6 +98,7 @@ namespace CS12_Project_1
             this.txtInfo3 = new System.Windows.Forms.TextBox();
             this.txtInfo2 = new System.Windows.Forms.MaskedTextBox();
             this.lblHeader = new System.Windows.Forms.Label();
+            this.tmrClose = new System.Windows.Forms.Timer(this.components);
             this.panel2.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -190,6 +194,11 @@ namespace CS12_Project_1
             this.lblHeader.Size = new System.Drawing.Size(23, 13);
             this.lblHeader.TabIndex = 11;
             this.lblHeader.Text = "title";
+            // 
+            // tmrClose
+            // 
+            this.tmrClose.Interval = 2000;
+            this.tmrClose.Tick += new System.EventHandler(this.tmrClose_Tick);
             // 
             // RegisterDialogue
             // 
@@ -364,22 +373,10 @@ namespace CS12_Project_1
             }
             throw new Exception();
         }
-        private enum ExitStatus
+        public enum ExitStatus
         {
             success,
             canceled
-        }
-        private void ExitRoutine(object sender, ElapsedEventArgs e)
-        {
-            switch(exitStatus_)
-            {
-                case ExitStatus.canceled:
-                    this.Hide();
-                    return;
-                case ExitStatus.success:
-                    this.Hide();
-                    return;
-            }
         }
         private void HandleConfig()
         {
@@ -396,12 +393,10 @@ namespace CS12_Project_1
                 return;
             }
             // success
+            exitStatus = ExitStatus.success;
             lblHeader.ForeColor = System.Drawing.Color.Green;
             lblHeader.Text = "Welcome to the HeadEssay!";
-            var timer = new System.Timers.Timer();
-            timer.Elapsed += ExitRoutine;
-            timer.Interval = 2000;
-            timer.Start();
+            tmrClose.Start();
         }
         private void button1_Click(object sender, EventArgs e)
         {
@@ -423,9 +418,16 @@ namespace CS12_Project_1
         // exit handler
         private void RegisterDialogue_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (e.CloseReason != CloseReason.UserClosing)
-                return;
-            parent_.Callback(ISystem.ExitStatus.userClosed,this);
+            //if (e.CloseReason != CloseReason.UserClosing)
+            //    return;
+            //parent_.Callback(ISystem.ExitStatus.userClosed,this);
+            parent_.Callback(exitStatus,this);
+        }
+
+        private void tmrClose_Tick(object sender, EventArgs e)
+        {
+            tmrClose.Dispose();
+            Close();
         }
     }
 }

@@ -18,19 +18,35 @@ namespace CS12_Project_1
             Application.SetCompatibleTextRenderingDefault(false);
             //Application.Run(new Form1());
             //PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
-            string debugpath = @"Z:\hmnt\CS12 Project 1";
+            string debugpath = @"Z:\hmnt\CS12 Project 1\";
             PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
             LoginSystem ls = new LoginSystem(debugpd);
             HeadEssay headEssay = new HeadEssay(debugpd,ls);
-            //Application.Run();
+
+
+
+            Person baz = debugpd.BloomFilterSearch("asdf");
+            baz.AddFriend(debugpd.BloomFilterSearch("alice"));
+            baz.AddFriend(debugpd.BloomFilterSearch("tom"));
+
+            Person foo = debugpd.BloomFilterSearch("alice");
+            foo.AddFriend(debugpd.BloomFilterSearch("tom"));
+
+
+
+
+            //debugpd.BloomFilterSearch("asdf").AddFriend(debugpd.BloomFilterSearch("tom"));
+            //debugpd.BloomFilterSearch("alice").AddFriend(debugpd.BloomFilterSearch("tom"));
+
             headEssay.ShowLoginForm();
+            //Application.Run();
         }
         public static void Exit(ISystem.ExitStatus t_exitStatus)
         {
             switch(t_exitStatus)
             {
                 case ISystem.ExitStatus.userClosed:
-                    Application.Exit();
+                    Application.Exit(); 
                     return;
                 case ISystem.ExitStatus.errors:
                     Application.Exit();

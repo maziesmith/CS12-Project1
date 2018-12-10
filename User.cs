@@ -6,16 +6,16 @@ using System.Threading.Tasks;
 
 namespace CS12_Project_1
 {
+
     public class User
     {   //TODO: doc this
-        private readonly Person currentUser_;
+        public readonly Person userinfo;
         public User(Person t_currentUser)
         {
-            currentUser_ = t_currentUser;
+            userinfo = t_currentUser;
         }
         public void AddFriend()
         {
-
         }
         public void RemoveFriend()
         {

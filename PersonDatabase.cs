@@ -9,6 +9,7 @@ namespace CS12_Project_1
     public class PersonsDatabase : IDatabase<List<Person>>
     {
         private uint nextPersonId_ = 0;
+        public const string databaseFileName = "AIDAN BIRD - HeadEssayData";
         public const int INITAL_SIZE = 10;
         public const int BLOOMFILTER_STARTING_SIZE = 10;
         public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);
@@ -23,13 +24,21 @@ namespace CS12_Project_1
         /// <param name="t_userName"></param>
         /// <param name="t_password"></param>
         /// <returns></returns>
+        public int UserCount
+        {
+            get { return data.Count; }
+        }
         public bool AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
         {
             //TODO: restrict to unique usernames
             Person next;
-            if ((next = PersonFactory.BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password, (nextPersonId_++) - 1, this)) == null)
+            if((next = PersonFactory.BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password, nextPersonId_, this)) == null)
                 return false;
+            nextPersonId_++;
             data.Add(next);
+            RebuildBloomFilter(t_userName);
+            ClearCache();
+            WriteFile(databaseFileName, data);
             return true;
         }
         public Person BloomFilterSearch(string t_userName)
@@ -48,6 +57,8 @@ namespace CS12_Project_1
         }
         private void FullRebuildBloomFilter()
         {
+            if (data == null)
+                return;
             const int NEXT_SIZE = 10;
             bloomFilter = new BloomFilter<string>(bloomFilter.Size + NEXT_SIZE);
             foreach (Person p in data)
@@ -100,8 +111,12 @@ namespace CS12_Project_1
         }
         public PersonsDatabase(string t_databaseRoot, ISystem t_parent) : base(t_databaseRoot, Encoding.BLOB, t_parent)
         {
-            NewFile("base");
-            Initalize();
+            if(!NewFile(databaseFileName))
+                LoadFile(databaseFileName);
+            if(data == null)
+                Initalize();
+            FullRebuildBloomFilter();
+            ClearCache();
         }
     }
 }

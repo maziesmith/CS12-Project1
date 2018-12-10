@@ -62,13 +62,27 @@ namespace CS12_Project_1
         private string userName_;   // Person's user name
         private ulong id_;          // Person's id; maps to a person object in a collection
         public readonly ulong staticID;
-        private readonly List<Person> friends_ = new List<Person>(FRIENDS_LIST_INITAL_SIZE); // pre-alloc friends list
+        public readonly List<Person> friends_ = new List<Person>(FRIENDS_LIST_INITAL_SIZE); // pre-alloc friends list
         private readonly List<string> interests_ = new List<string>();
         public readonly Password password;  // Person's password object
         public ulong ID
         {   // get/set the user ID
             get { return id_; }
             set { id_ = value; }
+        }
+        public List<Person> GetFriends(int t_start, int t_amt)
+        {
+            if(friends_.Count < 1
+            || t_start >= friends_.Count)
+                return null;
+            List<Person> output = new List<Person>(friends_.Count);
+            for(int i = 0; i < friends_.Count; i++)
+            {
+                if (i == t_amt)
+                    return output;
+                output.Add(friends_[i]);
+            }
+            return output;
         }
         public string FirstName
         {   // get/set the user's first name
@@ -104,7 +118,8 @@ namespace CS12_Project_1
             lastName_ = t_lastName;
             city_ = t_city;
             userName_ = t_userName;
-            staticID = (ulong)(new TimeSpan(1970, 1, 1).TotalSeconds);
+            //staticID = new TimeSpan(1970, 1, 1).TotalSeconds;
+            staticID = (ulong)(DateTime.UtcNow.Subtract(new DateTime(1970,1,1))).TotalSeconds;
             password = new Password(t_password);    // assign a new password object to the Person's class
         }
         private Person(SerializationInfo info, StreamingContext context)
@@ -118,6 +133,7 @@ namespace CS12_Project_1
                 lastName_ = info.GetString("LastName");
                 city_ = info.GetString("City");
                 userName_ = info.GetString("UserName");
+                staticID = info.GetUInt64("STATIC_ID");
             }
             catch
             {   // assert on error
@@ -126,9 +142,12 @@ namespace CS12_Project_1
         }
         public bool AddFriend(Person t_next)
         {
+            if (t_next == null)
+                return false;
             foreach(Person p in friends_)
             {
-                if (p.staticID == t_next.staticID)
+                //if(p.staticID == t_next.staticID)
+                if(p.staticID == t_next.staticID)
                     return false;
             }
             friends_.Add(t_next);
@@ -148,6 +167,7 @@ namespace CS12_Project_1
                 info.AddValue("City", city_);
                 info.AddValue("UserName", userName_);
                 info.AddValue("Friends", friends_);
+                info.AddValue("STATIC_ID", staticID);
             }
             catch
             {   // assert on error

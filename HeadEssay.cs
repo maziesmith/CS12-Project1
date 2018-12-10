@@ -13,13 +13,15 @@ namespace CS12_Project_1
 
         private LoginDialogue ld_;
         private RegisterDialogue rd_;
+        private UserDialogue ud_;
 
         public HeadEssay(PersonsDatabase t_pd, LoginSystem t_ls)
         {
             pd_ = t_pd;
             ls_ = t_ls;
-            ld_ = new LoginDialogue(this, ref ls_, ref ld_);
-            rd_ = new RegisterDialogue(this, ref t_pd);
+            //ud_ = new UserDialogue(this);
+            //ld_ = new LoginDialogue(this, ref ls_, ref ld_);
+            //rd_ = new RegisterDialogue(this, ref t_pd);
         }
 
         Action NextAction;
@@ -32,24 +34,32 @@ namespace CS12_Project_1
 
         public void ShowLoginForm()
         {
-            rd_.Hide();
-            ld_.Reload();
-            ld_.ShowDialog();
+            using (ld_ = new LoginDialogue(this, ref ls_, ref ld_))
+            {
+                ld_.ShowDialog();
+            }
             NextAction();
         }
         
         public void ShowRegForm()
         {
-            ld_.Hide();
-            rd_.Reload();
-            rd_.ShowDialog();
+            using (rd_ = new RegisterDialogue(this, ref pd_))
+            {
+                rd_.ShowDialog();
+            }
             NextAction();
         }
 
         public void ShowUserForm()
         {
-
-
+            bool udStatus;
+            using (ud_ = new UserDialogue(this, ref pd_))
+            {
+                udStatus = ud_.AssignUser(ld_.Nextlogin);
+            }
+            if(!udStatus)
+                ShowLoginForm();
+            NextAction();
         }
 
         // signal handler impl
@@ -64,18 +74,32 @@ namespace CS12_Project_1
                             NextAction = ShowRegForm;
                             return;
                         case LoginDialogue.Signals.loginSuccess:
-                            //NextAction
+                            NextAction = ShowUserForm;
                             return;
                         case ExitStatus.userClosed:
                             exitStatus_ = ExitStatus.userClosed;
                             NextAction = CloseHeadEssay;
+                            return;
+                        case ExitStatus.noError:
+                            NextAction = ShowUserForm;
                             return;
                     }
                     throw new ArgumentException();
                 case RegisterDialogue b:
                     switch(t_data)
                     {
-                        case ISystem.ExitStatus.userClosed:
+                        case RegisterDialogue.ExitStatus.success:
+                            NextAction = ShowLoginForm;
+                            return;
+                        case RegisterDialogue.ExitStatus.canceled:
+                            NextAction = ShowLoginForm;
+                            return;
+                    }
+                    throw new ArgumentException();
+                case UserDialogue c:
+                    switch(t_data)
+                    {
+                        case UserDialogue.ExitStatus.logout:
                             NextAction = ShowLoginForm;
                             return;
                     }

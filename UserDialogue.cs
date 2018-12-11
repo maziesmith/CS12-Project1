@@ -23,9 +23,15 @@ namespace CS12_Project_1
         private GroupBox gbMain;
         private Panel panel1;
         private Label lblTitleHomepage;
+        private GroupBox groupBox2;
+        private Label lblFriendsOfFriendsListNoFriends;
+        private ListBox lbFriendsOfFriendsList;
+        private GroupBox gbFriends;
+        private ListBox lbFriendsList;
+        private Label lblFriendsListNoFriends;
         private GroupBox groupBox1;
-        private ListBox lbFriends;
-        private Label lblNoFriends;
+        private Label lbFriendsWithSameInterestNoFriends;
+        private ListBox lbFriendsWithSameInterest;
         private ToolStripMenuItem firendsToolStripMenuItem;
         private void InitializeComponent()
         {
@@ -42,13 +48,21 @@ namespace CS12_Project_1
             this.logoutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gbMain = new System.Windows.Forms.GroupBox();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.lbFriends = new System.Windows.Forms.ListBox();
+            this.gbFriends = new System.Windows.Forms.GroupBox();
+            this.lblFriendsListNoFriends = new System.Windows.Forms.Label();
+            this.lbFriendsList = new System.Windows.Forms.ListBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.lblFriendsOfFriendsListNoFriends = new System.Windows.Forms.Label();
+            this.lbFriendsOfFriendsList = new System.Windows.Forms.ListBox();
             this.lblTitleHomepage = new System.Windows.Forms.Label();
-            this.lblNoFriends = new System.Windows.Forms.Label();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.lbFriendsWithSameInterestNoFriends = new System.Windows.Forms.Label();
+            this.lbFriendsWithSameInterest = new System.Windows.Forms.ListBox();
             this.menuStrip1.SuspendLayout();
             this.gbMain.SuspendLayout();
             this.panel1.SuspendLayout();
+            this.gbFriends.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -59,7 +73,7 @@ namespace CS12_Project_1
             this.settingsToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(446, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(756, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -143,7 +157,7 @@ namespace CS12_Project_1
             this.gbMain.Controls.Add(this.panel1);
             this.gbMain.Location = new System.Drawing.Point(12, 27);
             this.gbMain.Name = "gbMain";
-            this.gbMain.Size = new System.Drawing.Size(422, 247);
+            this.gbMain.Size = new System.Drawing.Size(732, 619);
             this.gbMain.TabIndex = 1;
             this.gbMain.TabStop = false;
             this.gbMain.Text = "gbMain";
@@ -151,30 +165,69 @@ namespace CS12_Project_1
             // panel1
             // 
             this.panel1.Controls.Add(this.groupBox1);
+            this.panel1.Controls.Add(this.gbFriends);
+            this.panel1.Controls.Add(this.groupBox2);
             this.panel1.Controls.Add(this.lblTitleHomepage);
             this.panel1.Location = new System.Drawing.Point(7, 20);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(409, 221);
+            this.panel1.Size = new System.Drawing.Size(719, 593);
             this.panel1.TabIndex = 0;
             // 
-            // groupBox1
+            // gbFriends
             // 
-            this.groupBox1.Controls.Add(this.lblNoFriends);
-            this.groupBox1.Controls.Add(this.lbFriends);
-            this.groupBox1.Location = new System.Drawing.Point(265, 3);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(141, 215);
-            this.groupBox1.TabIndex = 2;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Friends";
+            this.gbFriends.Controls.Add(this.lblFriendsListNoFriends);
+            this.gbFriends.Controls.Add(this.lbFriendsList);
+            this.gbFriends.Location = new System.Drawing.Point(418, 22);
+            this.gbFriends.Name = "gbFriends";
+            this.gbFriends.Size = new System.Drawing.Size(200, 242);
+            this.gbFriends.TabIndex = 5;
+            this.gbFriends.TabStop = false;
+            this.gbFriends.Text = "Friends List";
             // 
-            // lbFriends
+            // lblFriendsListNoFriends
             // 
-            this.lbFriends.FormattingEnabled = true;
-            this.lbFriends.Location = new System.Drawing.Point(6, 19);
-            this.lbFriends.Name = "lbFriends";
-            this.lbFriends.Size = new System.Drawing.Size(129, 186);
-            this.lbFriends.TabIndex = 1;
+            this.lblFriendsListNoFriends.AutoSize = true;
+            this.lblFriendsListNoFriends.Location = new System.Drawing.Point(72, 114);
+            this.lblFriendsListNoFriends.Name = "lblFriendsListNoFriends";
+            this.lblFriendsListNoFriends.Size = new System.Drawing.Size(58, 13);
+            this.lblFriendsListNoFriends.TabIndex = 4;
+            this.lblFriendsListNoFriends.Text = "No Friends";
+            // 
+            // lbFriendsList
+            // 
+            this.lbFriendsList.FormattingEnabled = true;
+            this.lbFriendsList.Location = new System.Drawing.Point(6, 19);
+            this.lbFriendsList.Name = "lbFriendsList";
+            this.lbFriendsList.Size = new System.Drawing.Size(188, 212);
+            this.lbFriendsList.TabIndex = 0;
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.lblFriendsOfFriendsListNoFriends);
+            this.groupBox2.Controls.Add(this.lbFriendsOfFriendsList);
+            this.groupBox2.Location = new System.Drawing.Point(212, 22);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(200, 242);
+            this.groupBox2.TabIndex = 4;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Friends Of Friends";
+            // 
+            // lblFriendsOfFriendsListNoFriends
+            // 
+            this.lblFriendsOfFriendsListNoFriends.AutoSize = true;
+            this.lblFriendsOfFriendsListNoFriends.Location = new System.Drawing.Point(72, 122);
+            this.lblFriendsOfFriendsListNoFriends.Name = "lblFriendsOfFriendsListNoFriends";
+            this.lblFriendsOfFriendsListNoFriends.Size = new System.Drawing.Size(58, 13);
+            this.lblFriendsOfFriendsListNoFriends.TabIndex = 3;
+            this.lblFriendsOfFriendsListNoFriends.Text = "No Friends";
+            // 
+            // lbFriendsOfFriendsList
+            // 
+            this.lbFriendsOfFriendsList.FormattingEnabled = true;
+            this.lbFriendsOfFriendsList.Location = new System.Drawing.Point(6, 19);
+            this.lbFriendsOfFriendsList.Name = "lbFriendsOfFriendsList";
+            this.lbFriendsOfFriendsList.Size = new System.Drawing.Size(188, 212);
+            this.lbFriendsOfFriendsList.TabIndex = 1;
             // 
             // lblTitleHomepage
             // 
@@ -185,28 +238,52 @@ namespace CS12_Project_1
             this.lblTitleHomepage.TabIndex = 0;
             this.lblTitleHomepage.Text = "lblTitleHomepage";
             // 
-            // lblNoFriends
+            // groupBox1
             // 
-            this.lblNoFriends.AutoSize = true;
-            this.lblNoFriends.Location = new System.Drawing.Point(39, 103);
-            this.lblNoFriends.Name = "lblNoFriends";
-            this.lblNoFriends.Size = new System.Drawing.Size(58, 13);
-            this.lblNoFriends.TabIndex = 3;
-            this.lblNoFriends.Text = "No Friends";
+            this.groupBox1.Controls.Add(this.lbFriendsWithSameInterestNoFriends);
+            this.groupBox1.Controls.Add(this.lbFriendsWithSameInterest);
+            this.groupBox1.Location = new System.Drawing.Point(6, 22);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(200, 242);
+            this.groupBox1.TabIndex = 5;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Friends With Same Interest";
+            // 
+            // lbFriendsWithSameInterestNoFriends
+            // 
+            this.lbFriendsWithSameInterestNoFriends.AutoSize = true;
+            this.lbFriendsWithSameInterestNoFriends.Location = new System.Drawing.Point(72, 122);
+            this.lbFriendsWithSameInterestNoFriends.Name = "lbFriendsWithSameInterestNoFriends";
+            this.lbFriendsWithSameInterestNoFriends.Size = new System.Drawing.Size(58, 13);
+            this.lbFriendsWithSameInterestNoFriends.TabIndex = 3;
+            this.lbFriendsWithSameInterestNoFriends.Text = "No Friends";
+            // 
+            // lbFriendsWithSameInterest
+            // 
+            this.lbFriendsWithSameInterest.FormattingEnabled = true;
+            this.lbFriendsWithSameInterest.Location = new System.Drawing.Point(6, 19);
+            this.lbFriendsWithSameInterest.Name = "lbFriendsWithSameInterest";
+            this.lbFriendsWithSameInterest.Size = new System.Drawing.Size(188, 212);
+            this.lbFriendsWithSameInterest.TabIndex = 1;
             // 
             // UserDialogue
             // 
-            this.ClientSize = new System.Drawing.Size(446, 286);
+            this.ClientSize = new System.Drawing.Size(756, 658);
             this.Controls.Add(this.gbMain);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "UserDialogue";
             this.Text = "User";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.UserDialogue_FormClosing);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.gbMain.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
+            this.gbFriends.ResumeLayout(false);
+            this.gbFriends.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
@@ -220,37 +297,146 @@ namespace CS12_Project_1
             parent_ = t_parent;
             pd_ = t_pd;
             InitializeComponent();
-            //ShowHomepage();
         }
+
+        public enum ExitStatus
+        {
+            logout,
+        }
+
+        private object exitStatus_ = ExitStatus.logout;
+
+        private List<Person> friendsOfFriendsList = null, friendsOfFriendsWithSameInterest = null;
+
         private void LoadUserContent()
         {
             Text = "USER: " + currentUser_.userinfo.UserName;
+            int i = -1;
+            foreach (Person p in currentUser_.userinfo.friends_)
+            {
+                if ((i++) == 5)
+                        break;
+                lbFriendsList.Items.Add(currentUser_.userinfo.friends_[i].UserName);
+            }
+            if (currentUser_.userinfo.friends_.Count < 1)
+            {
+                lbFriendsList.Hide();
+                lbFriendsOfFriendsList.Hide();
+                lblFriendsListNoFriends.Show();
+                lblFriendsOfFriendsListNoFriends.Show();
+                lblFriendsOfFriendsListNoFriends.Show();
+            }
+            else
+            {
+                lblFriendsListNoFriends.Hide();
+                if ((friendsOfFriendsList = GenerateUniqueFriendsOfFriends()) == null)
+                {
+                    lbFriendsOfFriendsList.Hide();
+                    lblFriendsOfFriendsListNoFriends.Show();
+                }
+                else
+                {
+                    if((friendsOfFriendsWithSameInterest = GenerateListOfFriendsOfFriendsWithInterest(friendsOfFriendsList)) == null)
+                    {
+                        lbFriendsWithSameInterest.Hide();
+                        lbFriendsWithSameInterestNoFriends.Show();
+                    }
+                    else
+                    {
+                        lbFriendsWithSameInterest.Show();
+                        lbFriendsWithSameInterestNoFriends.Hide();
+                        friendsOfFriendsWithSameInterest.ForEach(x => lbFriendsWithSameInterest.Items.Add(x.UserName));
+                    }
+                    lbFriendsOfFriendsList.Show();
+                    lblFriendsOfFriendsListNoFriends.Hide();
+                    friendsOfFriendsList.ForEach(p => lbFriendsOfFriendsList.Items.Add(p.UserName));
+                }
+                GenerateFriendsOfFriendsThatShareTheSameCityAndInterest(new List<Person>());
+            }
         }
 
         public List<Person> GenerateUniqueFriendsOfFriends()
         {
-            const int START_SIZE = 10;
-            //BloomFilter<Person> memo = new BloomFilter<Person>(START_SIZE);
+            // person list
             List<Person> unique = new List<Person>(pd_.UserCount);
             // logical memo table 
             bool[] memo = Enumerable.Repeat(false,pd_.UserCount).ToArray();
-            void SumFriendCount(Person t_target)
+            void MakeList(Person t_target)
             {
                 foreach(Person p in t_target.friends_)
                 {
-                    if (memo[p.ID])
+                    if (memo[p.ID]) // skip all friends in the memo table
                         continue;
                     else
                     {
-                        unique.Add(p);
-                        memo[p.ID] = true;
-                        SumFriendCount(p);
+                        unique.Add(p); // add person to list
+                        memo[p.ID] = true; // update memo table
+                        MakeList(p);    // recurse for all friends
                     }
                 }
             }
-            memo[currentUser_.userinfo.ID] = true;
-            SumFriendCount(currentUser_.userinfo);
+            memo[currentUser_.userinfo.ID] = true;  // add the current logged in user to the memo table
+            MakeList(currentUser_.userinfo);    // make the list
             return unique;
+        }
+
+        private List<Person> GenerateListOfFriendsOfFriendsWithInterest(List<Person> t_set)
+        {
+            var sameInterest = new List<string>(pd_.UserCount);
+            Dictionary<string,List<Person>> testSet = t_set
+                .Select(x => x.interests_)
+                .SelectMany(y => y)
+                .Distinct()
+                .ToDictionary( z => z, z => new List<Person>(t_set.Count) );
+            t_set.ForEach(
+            p =>
+            {
+                p.interests_.ForEach(i =>
+                {
+                    testSet[i].Add(p);
+                });
+            });
+            int max = 0;
+            List<Person> output = null;
+            foreach(List<Person> p in testSet.Values)
+            {
+                if (p.Count > max)
+                {
+                    output = p;
+                    max = p.Count;
+                }
+            }
+            if (output.Count < t_set.Count)
+                return null;
+            return output;
+        }
+
+        // a friends of friends that are not in current user's friends list 
+        // and that share the same intrest and city
+        private List<Person> GenerateFriendsOfFriendsThatShareTheSameCityAndInterest(List<Person> t_test)
+        {
+            // person list
+            List<Person> resultList = new List<Person>(pd_.UserCount);
+            // logical memo table 
+            bool[] memo = Enumerable.Repeat(false,pd_.UserCount).ToArray();
+            ulong[] reservedStaticIDs = currentUser_.userinfo.friends_.Select(x => x.staticID).ToArray();
+            pd_.cityTable.Values.Select( x => x = false );
+            pd_.cityTable[currentUser_.userinfo.City] = true;
+            Action<Person> MakeList = null; 
+            (MakeList = (Person t_target) =>
+            {
+                foreach (var p in t_target.friends_)
+                {
+                    if (memo[p.ID])
+                        continue;
+                    memo[p.ID] = true;
+                    if(!reservedStaticIDs.Contains(p.staticID)
+                    && pd_.cityTable[p.City])
+                        resultList.Add(p);
+                    MakeList(p);
+                }
+            })(currentUser_.userinfo);
+            return resultList;
         }
 
         public bool AssignUser(Person t_user)
@@ -258,22 +444,20 @@ namespace CS12_Project_1
             if (t_user == null)
                 return false;
             currentUser_ = new User(t_user);
+
             LoadUserContent();
             ShowHomepage();
-            List<Person> baz = GenerateUniqueFriendsOfFriends();
+            lbFriendsOfFriendsList.Items.Add("");
             ShowDialog();
             return true;
         }
+
         public void DisposeOfUser()
         {
             currentUser_ = null;
             Hide();
         }
 
-        public enum ExitStatus
-        {
-            logout,
-        }
 
         private void HideAllPanels()
         {
@@ -283,18 +467,7 @@ namespace CS12_Project_1
         {
             gbMain.Text = "Home";
             lblTitleHomepage.Text = string.Format("Welcome {0} to the HeadEssay!",currentUser_.userinfo.UserName);
-            List<Person> friends;
-            if ((friends = currentUser_.userinfo.GetFriends(0, 5)) == null)
-            {
-                lbFriends.Hide();
-                lblNoFriends.Show();
-            }
-            else
-            {
-                lbFriends.Show();
-                lblNoFriends.Hide();
-                lbFriends.Items.Add(friends);
-            }
+            //List<Person> friends;
             HideAllPanels();
         }
 
@@ -310,7 +483,6 @@ namespace CS12_Project_1
 
         private void logoutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            parent_.Callback(ExitStatus.logout,this);
             Close();
         }
 
@@ -332,6 +504,16 @@ namespace CS12_Project_1
         private void homepageToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ShowHomepage();
+        }
+
+        private void lbFriends_MouseClick(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void UserDialogue_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            parent_.Callback(exitStatus_,this);
         }
     }
 }

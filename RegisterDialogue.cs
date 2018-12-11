@@ -65,16 +65,16 @@ namespace CS12_Project_1
         private DialogStates dialogState_ = DialogStates.auth;
         private System.Windows.Forms.Timer tmrClose;
         private System.ComponentModel.IContainer components;
+        private object exitStatus = ExitStatus.canceled;
 
         private enum DialogStates
         {
             auth,
             config
         }
-        private object exitStatus = ExitStatus.canceled;
         public RegisterDialogue(ISystem t_parent, ref PersonsDatabase t_pd)
         {
-            exitStatus = null;
+            exitStatus = ExitStatus.canceled;
             pd_ = t_pd;
             parent_ = t_parent;
             InitializeComponent();

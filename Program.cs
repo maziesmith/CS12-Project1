@@ -19,21 +19,25 @@ namespace CS12_Project_1
             //Application.Run(new Form1());
             //PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
             string debugpath = @"Z:\hmnt\CS12 Project 1\";
+            //string debugpath = @"D:\CS12 Project 1\";
             PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
             LoginSystem ls = new LoginSystem(debugpd);
             HeadEssay headEssay = new HeadEssay(debugpd,ls);
 
-
-
             Person baz = debugpd.BloomFilterSearch("asdf");
-            baz.AddFriend(debugpd.BloomFilterSearch("alice"));
-            baz.AddFriend(debugpd.BloomFilterSearch("tom"));
-
+            Person bar = debugpd.BloomFilterSearch("tom");
             Person foo = debugpd.BloomFilterSearch("alice");
-            foo.AddFriend(debugpd.BloomFilterSearch("tom"));
+            Person bigbob = debugpd.BloomFilterSearch("bigbob");
 
-
-
+            baz.AddInterest("comsci","comeng","AI","ML");
+            bar.AddInterest("comsci","comeng","ML","IT");
+            foo.AddInterest("comeng","IT","osdev","comsec");
+            bigbob.AddInterest("comeng","webdev","blockchain","crypto");
+            baz.AddFriend(foo);
+            baz.AddFriend(bar);
+            foo.AddFriend(bar);
+            bigbob.AddFriend(foo);
+            bar.AddFriend(bigbob);
 
             //debugpd.BloomFilterSearch("asdf").AddFriend(debugpd.BloomFilterSearch("tom"));
             //debugpd.BloomFilterSearch("alice").AddFriend(debugpd.BloomFilterSearch("tom"));

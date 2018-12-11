@@ -15,6 +15,7 @@ namespace CS12_Project_1
         public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);
         private Person cached_ = null;  // person object cache
         private string cachedName_ = null;  // name cache
+        public Dictionary<string, bool> cityTable;
         /// <summary>
         /// adds person objects to the database
         /// </summary>
@@ -37,6 +38,7 @@ namespace CS12_Project_1
             nextPersonId_++;
             data.Add(next);
             RebuildBloomFilter(t_userName);
+            FullRebuildCitytable();
             ClearCache();
             WriteFile(databaseFileName, data);
             return true;
@@ -65,6 +67,10 @@ namespace CS12_Project_1
             {
                 bloomFilter.Add(p.UserName);
             }
+        }
+        private void FullRebuildCitytable()
+        {
+            cityTable = data.Select(x => x.City).Distinct().ToDictionary( y => y, y => false);
         }
         private void ClearCache()
         {
@@ -116,6 +122,7 @@ namespace CS12_Project_1
             if(data == null)
                 Initalize();
             FullRebuildBloomFilter();
+            FullRebuildCitytable();
             ClearCache();
         }
     }

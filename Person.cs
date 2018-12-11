@@ -63,7 +63,7 @@ namespace CS12_Project_1
         private ulong id_;          // Person's id; maps to a person object in a collection
         public readonly ulong staticID;
         public readonly List<Person> friends_ = new List<Person>(FRIENDS_LIST_INITAL_SIZE); // pre-alloc friends list
-        private readonly List<string> interests_ = new List<string>();
+        public readonly List<string> interests_ = new List<string>();
         public readonly Password password;  // Person's password object
         public ulong ID
         {   // get/set the user ID
@@ -83,6 +83,13 @@ namespace CS12_Project_1
                 output.Add(friends_[i]);
             }
             return output;
+        }
+        public Person GetFriend(int t_index)
+        {
+            if (t_index > friends_.Count
+            || t_index < 0)
+                return null;
+            return friends_[t_index];
         }
         public string FirstName
         {   // get/set the user's first name
@@ -139,6 +146,10 @@ namespace CS12_Project_1
             {   // assert on error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
             }
+        }
+        public void AddInterest(params string[] t_next)
+        {
+            interests_.AddRange(t_next.Where(s => !string.IsNullOrWhiteSpace(s)));
         }
         public bool AddFriend(Person t_next)
         {

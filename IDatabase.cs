@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 
 namespace CS12_Project_1
 {
+    // an imcomplete class that contains abstractions over interfacing with c# file IO functions
     public abstract class IDatabase<T> : ISystem where T : class, new()
     {
-        public enum Encoding //
+        // DATA MEMBERS
+        public enum Encoding
         {   // encoding id for files; maps to a file extention
             BLOB = 0,
             TEXT = 1
@@ -23,11 +25,23 @@ namespace CS12_Project_1
         public readonly Encoding encoding; // governs how files should be saved; 
         public readonly string rootDirPath = null;  // contains the path where files are looked up and saved to
         protected T data = null;    // contains the data of type T; data is obtained from file reads
-        public IDatabase(string t_rootDirPath, Encoding t_encoding, ISystem t_parent) : base(t_parent) //
+
+        // CONSTRUCTOR
+        // params:
+        //  string t_rootDirPath;   path to the root directory to stage file IO on
+        //  Encoding t_encoding;    the encoding of the files
+        //  ISystem t_parent;   parent object to callback
+        public IDatabase(
+            string t_rootDirPath,
+            Encoding t_encoding,
+            ISystem t_parent) : base(t_parent)
         {
-            rootDirPath = t_rootDirPath;
-            encoding = t_encoding;
+            rootDirPath = t_rootDirPath;    // set the root dir
+            encoding = t_encoding;  // set the encoding
         }
+
+        // OTHER METHODS
+        // initalize data<T>
         public virtual bool Initalize()
         {
             data = new T();

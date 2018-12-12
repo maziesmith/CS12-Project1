@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace CS12_Project_1
 {
+    // a utility class that contains error codes and messages
     public static class ErrorHandler
     {
+        // DATA MEMBERS
         public enum FatalErrno
         {   // error codes for each error caused by the program; maps to an error message
             PERSON_CONSTRUCT_FAIL = 0,
@@ -40,6 +42,8 @@ namespace CS12_Project_1
             "FATAL",
             "WARN",
         };
+
+        // METHODS
         private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
         {   // return a formatted error message
             return string.Concat(msgPrefix[(uint)prefixno], ": ", fatalErrMsg[(uint)errno]);

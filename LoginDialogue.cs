@@ -9,17 +9,18 @@ namespace CS12_Project_1
 {
     class LoginDialogue : Form
     {
-        private ISystem parent_;
-        private LoginSystem ls_;
-        private Person nextLogin_;
-        private Label lblInfoAuth2_;
-        private TextBox txtAuthUser_;
-        private TextBox txtAuthPass_;
-        private Button btnAuthSubmit_;
-        private Button btnAuthReg_;
-        private Panel panel1;
-        private Label lblHeader;
-        private Label lblInfoAuth1_;
+        // DATA MEMBERS
+        private ISystem parent_;    //
+        private LoginSystem ls_;    //
+        private Person nextLogin_;  //
+        private Label lblInfoAuth2_;    //
+        private TextBox txtAuthUser_;   //
+        private TextBox txtAuthPass_;   //
+        private Button btnAuthSubmit_;  //
+        private Button btnAuthReg_; //
+        private Panel panel1;   //
+        private Label lblHeader;    //
+        private Label lblInfoAuth1_;    //
         private void InitializeComponent()
         {
             this.lblInfoAuth1_ = new System.Windows.Forms.Label();

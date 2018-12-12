@@ -24,6 +24,7 @@ namespace CS12_Project_1
             LoginSystem ls = new LoginSystem(debugpd);
             HeadEssay headEssay = new HeadEssay(debugpd,ls);
 
+            
             Person baz = debugpd.BloomFilterSearch("asdf");
             Person bar = debugpd.BloomFilterSearch("tom");
             Person foo = debugpd.BloomFilterSearch("alice");
@@ -39,6 +40,9 @@ namespace CS12_Project_1
             bigbob.AddFriend(foo);
             bar.AddFriend(bigbob);
 
+            debugpd.FullRebuildInterestTable();
+            
+            
             //debugpd.BloomFilterSearch("asdf").AddFriend(debugpd.BloomFilterSearch("tom"));
             //debugpd.BloomFilterSearch("alice").AddFriend(debugpd.BloomFilterSearch("tom"));
 

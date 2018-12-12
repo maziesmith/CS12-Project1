@@ -15,7 +15,8 @@ namespace CS12_Project_1
         public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);
         private Person cached_ = null;  // person object cache
         private string cachedName_ = null;  // name cache
-        public Dictionary<string, bool> cityTable;
+        private Dictionary<string, bool> cityTable_;
+        private Dictionary<string, bool> interestTable_;
         /// <summary>
         /// adds person objects to the database
         /// </summary>
@@ -38,11 +39,33 @@ namespace CS12_Project_1
             nextPersonId_++;
             data.Add(next);
             RebuildBloomFilter(t_userName);
-            FullRebuildCitytable();
+            FullRebuildCityTable();
             ClearCache();
             WriteFile(databaseFileName, data);
             return true;
         }
+        // IMMUTABLE ACCESSORS
+        public IReadOnlyList<Person> Data
+        {   // allow readonly access to data
+            get { return data.AsReadOnly(); }
+        }
+        public Dictionary<string,bool> InterestTable
+        {   // allow readonly access to the interestTable
+            get { return interestTable_; }
+        }
+        public Dictionary<string,bool> CityTable
+        {   // allow readonly access to the cityTable
+            get { return cityTable_; }
+        }
+        public void ZeroOutInterestTable()
+        {
+            interestTable_.Values.Select(x => false);
+        }
+        public void ZeroOutCityTable()
+        {
+            cityTable_.Values.Select(x => false);
+        }
+
         public Person BloomFilterSearch(string t_userName)
         {
             if (!bloomFilter.Test(t_userName))
@@ -68,9 +91,17 @@ namespace CS12_Project_1
                 bloomFilter.Add(p.UserName);
             }
         }
-        private void FullRebuildCitytable()
+        public void FullRebuildInterestTable()
         {
-            cityTable = data.Select(x => x.City).Distinct().ToDictionary( y => y, y => false);
+            interestTable_ = data
+                .Select(x => x.interests_)
+                .SelectMany(x => x)
+                .Distinct()
+                .ToDictionary(z => z, z => false);
+        }
+        private void FullRebuildCityTable()
+        {
+            cityTable_ = data.Select(x => x.City).Distinct().ToDictionary( y => y, y => false);
         }
         private void ClearCache()
         {
@@ -122,7 +153,8 @@ namespace CS12_Project_1
             if(data == null)
                 Initalize();
             FullRebuildBloomFilter();
-            FullRebuildCitytable();
+            FullRebuildCityTable();
+            FullRebuildInterestTable();
             ClearCache();
         }
     }

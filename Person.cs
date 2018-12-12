@@ -10,8 +10,6 @@ namespace CS12_Project_1
 {
     public static class PersonFactory
     {
-        private static uint MIN_PASSWORD_LENGTH = 8;
-        private static int MIN_PASSWORD_REP_CHARS = 4;
         public static Person BuildPerson(
             string t_firstName,
             string t_lastName,
@@ -26,27 +24,6 @@ namespace CS12_Project_1
             || string.IsNullOrWhiteSpace(t_city)
             || string.IsNullOrWhiteSpace(t_userName)
             || string.IsNullOrWhiteSpace(t_password))
-                return null;
-
-            // old
-            if (t_password.Length < MIN_PASSWORD_LENGTH)
-                return null;
-            if (((Func<bool>)(() =>
-            {
-                int limit;
-                for (int i = 0; i < t_password.Length - MIN_PASSWORD_REP_CHARS; i++)
-                {
-                    char test = t_password[i];
-                    limit = i + MIN_PASSWORD_REP_CHARS;
-                    for (i++; i < limit; i++)
-                        if (t_password[i] != test)
-                            goto tryNextChar;
-                    return true;   // bad password
-                    tryNextChar:;
-                    continue;
-                }
-                return false;
-            }))())
                 return null;
             return new Person(t_firstName, t_lastName, t_city, t_userName, t_id, t_password);
         }
@@ -141,6 +118,7 @@ namespace CS12_Project_1
                 city_ = info.GetString("City");
                 userName_ = info.GetString("UserName");
                 staticID = info.GetUInt64("STATIC_ID");
+                interests_ = (List<string>)info.GetValue("Interests", typeof(List<string>));
             }
             catch
             {   // assert on error
@@ -179,6 +157,7 @@ namespace CS12_Project_1
                 info.AddValue("UserName", userName_);
                 info.AddValue("Friends", friends_);
                 info.AddValue("STATIC_ID", staticID);
+                info.AddValue("Interests",interests_);
             }
             catch
             {   // assert on error

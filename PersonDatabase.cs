@@ -9,7 +9,6 @@ namespace CS12_Project_1
     public class PersonsDatabase : IDatabase<List<Person>>
     {
         private uint nextPersonId_ = 0;
-        public const string databaseFileName = "AIDAN BIRD - HeadEssayData";
         public const int INITAL_SIZE = 10;
         public const int BLOOMFILTER_STARTING_SIZE = 10;
         public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);
@@ -32,7 +31,8 @@ namespace CS12_Project_1
         }
         public bool AddPerson(string t_firstName, string t_lastName, string t_city, string t_userName, string t_password)
         {
-            //TODO: restrict to unique usernames
+            if (BloomFilterSearch(t_userName) != null)
+                return false;
             Person next;
             if((next = PersonFactory.BuildPerson(t_firstName, t_lastName, t_city, t_userName, t_password, nextPersonId_, this)) == null)
                 return false;
@@ -41,13 +41,16 @@ namespace CS12_Project_1
             RebuildBloomFilter(t_userName);
             FullRebuildCityTable();
             ClearCache();
-            WriteFile(databaseFileName, data);
             return true;
         }
         // IMMUTABLE ACCESSORS
         public IReadOnlyList<Person> Data
         {   // allow readonly access to data
             get { return data.AsReadOnly(); }
+        }
+        public IReadOnlyList<Invitation> Invitations
+        {
+            get { return data.Select(x => x.sentInvitations_).SelectMany(x => x).ToArray(); }
         }
         public Dictionary<string,bool> InterestTable
         {   // allow readonly access to the interestTable
@@ -146,16 +149,23 @@ namespace CS12_Project_1
             ClearCache();
             return true;
         }
-        public PersonsDatabase(string t_databaseRoot, ISystem t_parent) : base(t_databaseRoot, Encoding.BLOB, t_parent)
+        public bool Save(string t_fileName)
         {
-            if(!NewFile(databaseFileName))
-                LoadFile(databaseFileName);
+            return base.WriteFile(t_fileName, data);
+        }
+        public void Initalize(string t_databaseFileName)
+        {
+            if(!NewFile(t_databaseFileName))
+                LoadFile(t_databaseFileName);
             if(data == null)
-                Initalize();
+                base.Initalize();
             FullRebuildBloomFilter();
             FullRebuildCityTable();
             FullRebuildInterestTable();
             ClearCache();
+        }
+        public PersonsDatabase(string t_databaseRoot, ISystem t_parent) : base(t_databaseRoot, Encoding.BLOB, t_parent)
+        {
         }
     }
 }

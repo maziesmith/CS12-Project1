@@ -8,27 +8,31 @@ namespace CS12_Project_1
 {
     static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
+        private static string PD_DEBUGPATH = @"Z:\hmnt\CS12 Project 1\";
+        private static string PD_FILENAME = "AIDAN BIRD - HeadEssayData";
+        private static readonly PersonsDatabase pd = new PersonsDatabase(PD_DEBUGPATH,null);
+        private static readonly LoginSystem ls = new LoginSystem(pd);
+        private static readonly HeadEssay headEssay = new HeadEssay(pd,ls);
+
+        // The main entry point for the application.
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form1());
-            //PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
-            string debugpath = @"Z:\hmnt\CS12 Project 1\";
-            //string debugpath = @"D:\CS12 Project 1\";
-            PersonsDatabase debugpd = new PersonsDatabase(debugpath,null);
-            LoginSystem ls = new LoginSystem(debugpd);
-            HeadEssay headEssay = new HeadEssay(debugpd,ls);
 
+            pd.Initalize(PD_FILENAME);
+
+
+            pd.AddPerson("asdf","asdf","asdf","asdf","asdfasdfasdf");
+            pd.AddPerson("baz","baz","baz","alice","asdfasdfasdf");
+            pd.AddPerson("baz","baz","baz","tom","asdfasdfasdf");
+            pd.AddPerson("baz","baz","baz","bigbob","asdfasdfasdf");
             
-            Person baz = debugpd.BloomFilterSearch("asdf");
-            Person bar = debugpd.BloomFilterSearch("tom");
-            Person foo = debugpd.BloomFilterSearch("alice");
-            Person bigbob = debugpd.BloomFilterSearch("bigbob");
+            Person baz = pd.BloomFilterSearch("asdf");
+            Person bar = pd.BloomFilterSearch("tom");
+            Person foo = pd.BloomFilterSearch("alice");
+            Person bigbob = pd.BloomFilterSearch("bigbob");
 
             baz.AddInterest("comsci","comeng","AI","ML");
             bar.AddInterest("comsci","comeng","ML","IT");
@@ -39,18 +43,12 @@ namespace CS12_Project_1
             foo.AddFriend(bar);
             bigbob.AddFriend(foo);
             bar.AddFriend(bigbob);
-
-            debugpd.FullRebuildInterestTable();
-            
-            
-            //debugpd.BloomFilterSearch("asdf").AddFriend(debugpd.BloomFilterSearch("tom"));
-            //debugpd.BloomFilterSearch("alice").AddFriend(debugpd.BloomFilterSearch("tom"));
-
+            pd.FullRebuildInterestTable();
             headEssay.ShowLoginForm();
-            //Application.Run();
         }
         public static void Exit(ISystem.ExitStatus t_exitStatus)
         {
+            pd.Save(PD_FILENAME);
             switch(t_exitStatus)
             {
                 case ISystem.ExitStatus.userClosed:

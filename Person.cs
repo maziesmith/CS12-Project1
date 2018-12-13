@@ -41,6 +41,10 @@ namespace CS12_Project_1
         public readonly ulong staticID;
         public readonly List<Person> friends_ = new List<Person>(FRIENDS_LIST_INITAL_SIZE); // pre-alloc friends list
         public readonly List<string> interests_ = new List<string>();
+
+        public readonly List<Invitation> pendingInvitations_;
+        public readonly List<Invitation> sentInvitations_;   
+
         public readonly Password password;  // Person's password object
         public ulong ID
         {   // get/set the user ID
@@ -102,9 +106,10 @@ namespace CS12_Project_1
             lastName_ = t_lastName;
             city_ = t_city;
             userName_ = t_userName;
-            //staticID = new TimeSpan(1970, 1, 1).TotalSeconds;
-            staticID = (ulong)(DateTime.UtcNow.Subtract(new DateTime(1970,1,1))).TotalSeconds;
+            staticID = (ulong)(DateTime.UtcNow.Subtract(new DateTime(1970,1,1))).TotalSeconds + t_id;
             password = new Password(t_password);    // assign a new password object to the Person's class
+            pendingInvitations_ = new List<Invitation>();
+            sentInvitations_ = new List<Invitation>();
         }
         private Person(SerializationInfo info, StreamingContext context)
         {   // Person constructor; used to build a new person object from a blob file
@@ -119,6 +124,8 @@ namespace CS12_Project_1
                 userName_ = info.GetString("UserName");
                 staticID = info.GetUInt64("STATIC_ID");
                 interests_ = (List<string>)info.GetValue("Interests", typeof(List<string>));
+                pendingInvitations_ = (List<Invitation>)info.GetValue("PendingInvitations", typeof(List<Invitation>));
+                sentInvitations_ = (List<Invitation>)info.GetValue("SentInvitations", typeof(List<Invitation>));
             }
             catch
             {   // assert on error
@@ -127,7 +134,7 @@ namespace CS12_Project_1
         }
         public void AddInterest(params string[] t_next)
         {
-            interests_.AddRange(t_next.Where(s => !string.IsNullOrWhiteSpace(s)));
+            interests_.AddRange(t_next.Where(s => !string.IsNullOrWhiteSpace(s) && !interests_.Contains(s)));
         }
         public bool AddFriend(Person t_next)
         {
@@ -142,9 +149,6 @@ namespace CS12_Project_1
             friends_.Add(t_next);
             return true;
         }
-        //public bool SendInvite(Invite t_next)
-        //{
-        //}
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {   // called when saving a person object to disk
             try
@@ -158,6 +162,8 @@ namespace CS12_Project_1
                 info.AddValue("Friends", friends_);
                 info.AddValue("STATIC_ID", staticID);
                 info.AddValue("Interests",interests_);
+                info.AddValue("PendingInvitations",pendingInvitations_);
+                info.AddValue("SentInvitations",sentInvitations_);
             }
             catch
             {   // assert on error

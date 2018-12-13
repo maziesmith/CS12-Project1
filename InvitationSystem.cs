@@ -12,12 +12,33 @@ namespace CS12_Project_1
     [Serializable()]
     public class Invitation : ISerializable
     {
+        // FACTORY
+        public static class InvitationFactory
+        {
+            public static Invitation MakeInvitation(
+                Person t_author, 
+                Person[] t_recipients,
+                string t_title, 
+                string t_body)
+            {
+                Invitation output = new Invitation(            
+                    t_author, 
+                    t_recipients,
+                    t_title, 
+                    t_body);
+                t_author.sentInvitations_.Add(output);
+                foreach (Person x in t_recipients)
+                    x.pendingInvitations_.Add(output);
+                return output;
+            }
+        }
         // DATA MEMBERS
         public const int INIT_LIFETIME = 10; // time in minutes before the invitation expiers
         private int lifetime_;  // current life time of the invitation
         public readonly Tuple<int, int, int> timestamp  = null;
+        private Person author = null;
+        private Person[] recipients_ = null;
         public readonly string  // text
-            author, // the invitation's author
             title,  // the invitation's title
             body;   // the invitation's body paragraph
         // CONSTRUCTORS
@@ -25,13 +46,15 @@ namespace CS12_Project_1
         //  string t_author; the author
         //  string t_title; the title
         //  string t_body;  the body paragraph
-        public Invitation(
-            string t_author, 
+        private Invitation(
+            Person t_author, 
+            Person[] t_recipients,
             string t_title, 
             string t_body)
         {
             // initalize all data members
             author = t_author;
+            recipients_ = t_recipients;
             title = t_title;
             body = t_body;
             lifetime_ = INIT_LIFETIME;
@@ -47,21 +70,41 @@ namespace CS12_Project_1
         {
             try
             {   // try to extract and set all data members
-                author = info.GetString("Author");
                 title = info.GetString("Title");
                 body = info.GetString("Body");
                 lifetime_ = info.GetInt32("Lifetime");
                 timestamp = (Tuple<int,int,int>)info.GetValue("Timestamp", typeof(Tuple<int,int,int>));
+                author = (Person)info.GetValue("Author",typeof(Person));
             }
             catch
             {
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
             }
         }
+        public void Remove()
+        {
+            if (recipients_ != null)
+                foreach (Person x in recipients_)
+                    x.pendingInvitations_.Remove(this);
+            author.sentInvitations_.Remove(this);
+        }
         // METHOD MEMBERS
+        public IReadOnlyList<Person> GetRecipients
+        {
+            get { return recipients_; }
+        }
+        public string AuthorUsername
+        {
+            get { return author.UserName; }
+        }
+        public ulong AuthorStaticID
+        {
+            get { return author.staticID; }
+        }
         public bool UpdateTime()   
         {   // count down by one minute; return true if the invatation should be deleted
-            return lifetime_-- == 0;
+            //author.sentInvitations_.Remove(this);
+            return (lifetime_--) == 0;
         }
         // serializer
         public void GetObjectData(
@@ -86,8 +129,8 @@ namespace CS12_Project_1
     public class InvitationSystem
     {   // DATA MEMBERS
         private Timer timer_ = null;    // a timer object to update all invitations every minute
-        private PersonsDatabase pd_ = null; // reference to the person database
-        private ISystem parent_ = null; // reference to the parent object to send signals to
+        private PersonsDatabase pd_; // reference to the person database
+        private UserDialogue ud_;
         private LinkedList<Invitation> activeInvitations_ = new LinkedList<Invitation>();   
         // a linked list to store active invitations;
         // a linked list was chosen instead of a normal list (dynamic array)
@@ -97,19 +140,19 @@ namespace CS12_Project_1
         // functions that access nodes operate on all nodes anyway ( O(n) )
         private LinkedListNode<Invitation> node = null; // iterator node
         private LinkedListNode<Invitation> swap = null; // swap node
+        private const int TIMER_INTERVAL_TIME = 6000*10;
         // CONSTRUCTOR
         // params:
-        //  ISystem t_parent;   the parent object to send signals to 
         //  ref PersonsDatabase t_pd; reference to the person database
         public InvitationSystem(
-            ISystem t_parent,
-            ref PersonsDatabase t_pd)
+            in UserDialogue t_ud,
+            in PersonsDatabase t_pd)
         {   // initialize all data members
-            parent_ = t_parent;
-            t_pd = pd_;
+            ud_ = t_ud;
+            pd_ = t_pd;
             timer_ = new Timer();   // initialize the timer
             timer_.Tick += UpdateAllInvitations;
-            timer_.Interval = 6000*10;  // make the timer invoke UpdateAllInvitations() every minute
+            timer_.Interval = TIMER_INTERVAL_TIME;  // make the timer invoke UpdateAllInvitations() every minute
             timer_.Start(); // start the time
         }
         // DESTRUCTOR
@@ -129,6 +172,12 @@ namespace CS12_Project_1
                 if(node.Value.UpdateTime()) // update all invitations; delete all that have a lifetime of 0
                 {
                     swap = node;    // save node state
+                    node.Value.Remove();
+                    if(node.Value.AuthorStaticID == ud_.CurrentUserStaticID)
+                    {
+                        ud_.UpdatePendingInvitations();
+                        ud_.UpdateSentInvitations();
+                    }
                     activeInvitations_.Remove(node);    // delete node
                     node = swap.Next;   // goto next node 
                     continue;

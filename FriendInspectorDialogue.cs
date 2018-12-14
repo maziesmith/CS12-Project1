@@ -7,25 +7,47 @@ using System.Windows.Forms;
 
 namespace CS12_Project_1
 {
+    // FRIEND INSPECTOR DIALOGUE
+    // shows info about a person object
     public class FriendInspectorDialogue : Form
-    {
-        private Button btnExit;
-        private GroupBox groupBox3;
-        private ListBox lbFriends;
+    {   // DATA MEMBERS
+        // form elements
         private GroupBox groupBox2;
+        private GroupBox groupBox3;
+        private GroupBox gbHeader;
+        private GroupBox groupBox1;
+        private ListBox lbFriends;
+        private ListBox lbInterests;
+        private Button btnExit; // exit button
         private Label lblCity;
         private Label lblName;
         private Label label1;
         private Label label2;
-        private GroupBox groupBox1;
-        private ListBox lbInterests;
-        private GroupBox gbHeader;
+        // other data members
         private UserDialogue ud_;
+        // CONSTRUCTOR
+        // params:
+        //  in UserDialogue t_ud; a reference to a UserDialogue object, 
+        //  used for invoking this object on friends lists within this object.
         public FriendInspectorDialogue(in UserDialogue t_ud)
-        {
+        {   // initialize data members
             ud_ = t_ud;
             InitializeComponent();
         }
+        // setup all form fields and then show this form 
+        public void Show(in Person t_next)
+        {
+            gbHeader.Text = t_next.UserName; // set the header to t_next's username.
+            lblName.Text = string.Format("{0} {1}", t_next.FirstName, t_next.LastName); // set the name field to t_next's first and last name
+            lblCity.Text = t_next.City; // set the city field to t_next's city
+            lbFriends.Items.Clear();    // clear all items in the friends list
+            lbInterests.Items.Clear();  // clear all items in the friends list
+            t_next.friends_.ForEach(x => lbFriends.Items.Add(x.UserName)); // fill the friends list with t_next's friends list
+            t_next.interests_.ForEach(x => lbInterests.Items.Add(x)); // fill the interests list with t_next's interests list
+            Show(); // show the form
+            Focus();    // bring this form info focus
+        }
+        // initialize form elements
         private void InitializeComponent()
         {
             this.gbHeader = new System.Windows.Forms.GroupBox();
@@ -169,35 +191,27 @@ namespace CS12_Project_1
             this.ResumeLayout(false);
 
         }
-        public void Show(in Person t_next)
-        {
-            gbHeader.Text = t_next.UserName;
-            lblName.Text = string.Format("{0} {1}", t_next.FirstName, t_next.LastName);
-            lblCity.Text = t_next.City;
-            lbFriends.Items.Clear();
-            lbInterests.Items.Clear();
-            t_next.friends_.ForEach(x => lbFriends.Items.Add(x.UserName));
-            t_next.interests_.ForEach(x => lbInterests.Items.Add(x));
-            Show();
-            Focus();
-        }
+        // FORM EVENTS
+        // invoked when the exit button is pressed
         private void btnExit_Click(object sender, EventArgs e)
-        {
+        {   // hide this form
             Hide();
         }
+        // invoked when the form is about to be closed 
         private void FriendInspectorDialogue_FormClosing(object sender, FormClosingEventArgs e)
-        {
+        {   // if the user wants to close the form using the X button, hide it instead
             if(e.CloseReason == CloseReason.UserClosing)
             {
-                e.Cancel = true;
-                Hide();
+                e.Cancel = true; // cancel the close request
+                Hide(); // hide the form
             }
         }
+        // invoked when lbFriends_ is double clicked
         private void lbFriends_DoubleClick(object sender, EventArgs e)
-        {
+        {   // ensure that an element in lbFriends_ is selected
             if (lbFriends.SelectedIndex == -1)
                 return;
-            ud_.LoadFriendInspectorDialogue(lbFriends.Items[lbFriends.SelectedIndex] as string);
+            ud_.LoadFriendInspectorDialogue(lbFriends.Items[lbFriends.SelectedIndex] as string); // display info about the selected friend
         }
     }
 }

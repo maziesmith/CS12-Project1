@@ -6,21 +6,106 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CS12_Project_1
-{
+{   // provides a user interface for loggin into the Head Essay
     class LoginDialogue : Form
-    {
-        // DATA MEMBERS
-        private ISystem parent_;    //
-        private LoginSystem ls_;    //
-        private Person nextLogin_;  //
-        private Label lblInfoAuth2_;    //
-        private TextBox txtAuthUser_;   //
-        private TextBox txtAuthPass_;   //
-        private Button btnAuthSubmit_;  //
-        private Button btnAuthReg_; //
-        private Panel panel1;   //
-        private Label lblHeader;    //
-        private Label lblInfoAuth1_;    //
+    {   // DATA MEMBERS
+        // form elements
+        private TextBox txtAuthUser_; 
+        private TextBox txtAuthPass_; 
+        private Button btnAuthSubmit_;
+        private Button btnAuthReg_;
+        private Panel panel1;
+        private Label lblHeader;
+        private Label lblInfoAuth2_;  
+        private Label lblInfoAuth1_;
+        // other data members
+        private object exitStatus;  // exit status of the login form
+        private ISystem parent_;    // parent object for sending signals to
+        private LoginSystem ls_;    // reference to a login system object
+        private Person nextLogin_;  // the next person object that will be logged in
+        public enum Signals 
+        {   // signals that can be sent to the parent
+            signupRequest,
+            loginSuccess
+        }
+        private enum Errno  
+        {   // error codes
+            emptyField,
+            badAuth
+        }
+        // CONSTRUCTOR
+        // params:
+        //  ISystem t_parent;   parent object to send signals to 
+        //  ref LoginSystem t_ls;   a reference to a login system
+        //  ref LoginDialogue t_ld;     a reference to a login dialogue     TODO: remove this
+        public LoginDialogue(ISystem t_parent, ref LoginSystem t_ls, ref LoginDialogue t_ld)
+        {   // initialize all data members 
+            t_ld = this;    // TODO: remove this
+            ls_ = t_ls;
+            parent_ = t_parent;
+            InitializeComponent();
+            Reload();
+        }
+        // METHOD MEMBERS
+        // reload the dialog elements
+        public void Reload()
+        {
+            lblHeader.ForeColor = System.Drawing.Color.Black;   // set the ForeColor to black
+            lblHeader.Text = "Sign In"; // set the header text to "Sign In"
+            exitStatus = null;  // set the exit status to null
+        }
+        private void Error(Errno t_errno)
+        {
+            lblHeader.ForeColor = System.Drawing.Color.Red; // set the header forecolour to red
+            switch(t_errno) // change the header text based on the error code
+            {
+                case Errno.badAuth:     // the user entered incorrect credentials
+                    lblHeader.Text = "Incorrect username or password.";
+                    return;
+                case Errno.emptyField:  // the user did not fill in all fields
+                    lblHeader.Text = "All fields must be filled.";
+                    return;
+            }
+        }
+        // get the logged in user
+        public Person Nextlogin
+        {
+            get { return nextLogin_; }
+        }
+        // EVENTS
+        // when btnAuthSubmit_ is pressed
+        private void btnAuthSubmit__Click(object sender, EventArgs e)
+        {
+            if(string.IsNullOrEmpty(txtAuthUser_.Text)
+            || string.IsNullOrEmpty(txtAuthPass_.Text))
+            {   // if any of the fields are empty, alert the user that they messed up
+                Error(Errno.emptyField);
+                return;
+            }
+            if((nextLogin_ = ls_.Login(txtAuthUser_.Text, txtAuthPass_.Text)) == null)
+            {   // if the login credentials are incorrect, alert the user that they messed up 
+                Error(Errno.badAuth);
+                return;
+            }
+            parent_.Callback(Signals.loginSuccess,this);    // signal to the parent that the user logged in correctly
+            exitStatus = ISystem.ExitStatus.noError;    // set the exit status to no error
+            Close();    // delete this form
+        }
+        // when btnAuthReg_ is pressed
+        private void btnAuthReg__Click(object sender, EventArgs e)
+        {
+            exitStatus = Signals.signupRequest; // set the exit status to sign up request
+            Close();    // delete this form
+        }
+        // when this form is closing 
+        private void LoginDialogue_FormClosing(object sender, FormClosingEventArgs e)
+        {   // if the exit status is null, tell the parent that the user closed the form
+            if(exitStatus == null)
+                parent_.Callback(ISystem.ExitStatus.userClosed,this);
+            else    // tell the parent that this form is closing
+                parent_.Callback(exitStatus,this); 
+        }
+        // initialize the form 
         private void InitializeComponent()
         {
             this.lblInfoAuth1_ = new System.Windows.Forms.Label();
@@ -122,78 +207,6 @@ namespace CS12_Project_1
             this.panel1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
-
-        }
-        private object exitStatus;
-        public enum Signals
-        {
-            signupRequest,
-            loginSuccess
-        }
-        public LoginDialogue(ISystem t_parent, ref LoginSystem t_ls, ref LoginDialogue t_ld)
-        {
-            t_ld = this;
-            ls_ = t_ls;
-            parent_ = t_parent;
-            InitializeComponent();
-            Reload();
-        }
-        public void Reload()
-        {
-            lblHeader.ForeColor = System.Drawing.Color.Black;
-            lblHeader.Text = "Sign In";
-            exitStatus = null;
-        }
-        private enum Errno
-        {
-            emptyField,
-            badAuth
-        }
-        private void Error(Errno t_errno)
-        {
-            lblHeader.ForeColor = System.Drawing.Color.Red;
-            switch(t_errno)
-            {
-                case Errno.badAuth:
-                    lblHeader.Text = "Incorrect username or password.";
-                    return;
-                case Errno.emptyField:
-                    lblHeader.Text = "All fields must be filled.";
-                    return;
-            }
-        }
-        public Person Nextlogin
-        {
-            get { return nextLogin_; }
-        }
-        private void btnAuthSubmit__Click(object sender, EventArgs e)
-        {
-            if(string.IsNullOrEmpty(txtAuthUser_.Text)
-            || string.IsNullOrEmpty(txtAuthPass_.Text))
-            {
-                Error(Errno.emptyField);
-                return;
-            }
-            if((nextLogin_ = ls_.Login(txtAuthUser_.Text, txtAuthPass_.Text)) == null)
-            {
-                Error(Errno.badAuth);
-                return;
-            }
-            parent_.Callback(Signals.loginSuccess,this);
-            exitStatus = ISystem.ExitStatus.noError;
-            Close();
-        }
-        private void btnAuthReg__Click(object sender, EventArgs e)
-        {
-            exitStatus = Signals.signupRequest;
-            Close();
-        }
-        private void LoginDialogue_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if(exitStatus == null)
-                parent_.Callback(ISystem.ExitStatus.userClosed,this);
-            else
-                parent_.Callback(exitStatus,this);
         }
     }
 }

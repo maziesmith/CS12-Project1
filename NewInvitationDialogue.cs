@@ -6,45 +6,70 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CS12_Project_1
-{
+{   // NEW INVITATION DIALOGUE
+    // provides a user interface for creating new invites
     public class NewInvitationDialogue : Form
-    {
-        private GroupBox gbHeader_;
-        private Button btnCancel_;
-        private Button btnSubmit_;
+    {   // DATA MEMBERS
+        // form elements
         private RichTextBox rtxtDescription_;
-        private Label lblTitle_;
-        private TextBox txtTitle_;
+        private GroupBox gbHeader_;
         private GroupBox groupBox2_;
-        private TextBox textBox2_;
-        private Button button1_;
-        private Button button2_;
         private GroupBox groupBox3_;
         private ListBox lbRecipients_;
-        private Button btnRemoveRecipients_;
-        private Button btnAddRecipients_;
+        private TextBox txtTitle_;
+        private TextBox textBox2_;
         private TextBox txtAddRecipients_;
         private TextBox txtBox1_;
+        private Button btnCancel_;
+        private Button btnSubmit_;
         private Button button3_;
         private Button button4_;
-        private LinkedList<Person> recipients_;
-        private InvitationSystem is_;
-        private Person author_;
-        private PersonsDatabase pd_;
-        private UserDialogue ud_;
-
+        private Button btnRemoveRecipients_;
+        private Button btnAddRecipients_;
+        private Button button1_;
+        private Button button2_;
+        private Label lblTitle_;
+        // other data members
+        private LinkedList<Person> recipients_; // a linked list containing all the recipients
+        private InvitationSystem is_;   // a reference to an invitation system to send invitations 
+        private PersonsDatabase pd_;    // a reference to a person database to query person objects
+        private UserDialogue ud_;   // a reference to a user dialogue object 
+        private Person author_; // a reference to the author's person object
+        private enum ErrorCodes
+        {   // error codes
+            NoTitle = 0,
+            NoRecipents = 1,
+            NoDescription = 2,
+            RecipientNotFound = 3,
+            RecipientInList = 4,
+        }
+        private readonly string[] errorMsg =
+        {   // error messages
+            "Title required.",
+            "Recipents required.",
+            "Description required.",
+            "Could not add recipient, account not found.",
+            "Recipent is already in list."
+        };
+        // CONSTRUCTOR
+        // params:
+        //  in UserDialogue t_ud;   reference to a user dialogue object
+        //  in InvitationSystem t_is;   reference to an InvitationSystem object
+        //  in PersonsDatabase t_pd;    reference to a person data base object
+        // TODO: use the in keyword more
         public NewInvitationDialogue(
             in UserDialogue t_ud,
             in InvitationSystem t_is,
             in PersonsDatabase t_pd)
-        {
+        {   // initialize all data members 
             is_ = t_is;
             pd_ = t_pd;
             ud_ = t_ud;
-            recipients_ = new LinkedList<Person>();
-            InitializeComponent();
+            recipients_ = new LinkedList<Person>(); // recipients_ to be a new LinkedList<recipients_>
+            InitializeComponent();  // initialize form elements
         }
-
+        // METHOD MEMBERS
+        // initialize form elements
         private void InitializeComponent()
         {
             this.gbHeader_ = new System.Windows.Forms.GroupBox();
@@ -260,125 +285,108 @@ namespace CS12_Project_1
             this.ResumeLayout(false);
 
         }
-
+        // get or set the author object
         public Person Author
         {
-            get { return author_; }
-            set { author_ = value ?? author_; }
+            get { return author_; } // return the author's person object
+            set { author_ = value ?? author_; } // setting author_ to null will be rejected
         }
-
-        private enum ErrorCodes
-        {
-            NoTitle = 0,
-            NoRecipents = 1,
-            NoDescription = 2,
-            RecipientNotFound = 3,
-            RecipientInList = 4,
-        }
-
-        private readonly string[] errorMsg =
-        {
-            "Title required.",
-            "Recipents required.",
-            "Description required.",
-            "Could not add recipient, account not found.",
-            "Recipent is already in list."
-        };
-
+        // sets gbHeader_ to the appropriate error message
         private void Error(ErrorCodes t_errno)
         {
             gbHeader_.Text = errorMsg[(int)t_errno];
         }
-
+        // Initialize important form elements
+        public void Initialize()
+        {
+            txtAddRecipients_.Text = "";    // delete all text in fields 
+            rtxtDescription_.Text = "";     // 
+            txtTitle_.Text = "";            // 
+            recipients_.Clear();            // delete all list box entries
+            lbRecipients_.Items.Clear();    //
+        }
+        // show the form
+        public void Show(Person t_author)
+        {
+            author_ = t_author; // set the author
+            Show(); // show this form
+            Focus();    // bring this form to focus
+        }
+        // EVENTS
+        // when the submit button is pressed
         private void btnSubmit_Click(object sender, EventArgs e)
         {
-            if(string.IsNullOrWhiteSpace(gbHeader_.Text))
-            {
+            if(string.IsNullOrWhiteSpace(txtTitle_.Text))
+            {   // test if txtTitle_ is empty then error
                 Error(ErrorCodes.NoTitle);
                 return;
             }
             if(string.IsNullOrWhiteSpace(rtxtDescription_.Text))
-            {
+            {   // if rtxtDescription_ is empty then error
                 Error(ErrorCodes.NoDescription);
                 return;
             }
             if (lbRecipients_.Items.Count == 0)
-            {
+            {   // if lbRecipients_.Items is empty then error
                 Error(ErrorCodes.NoRecipents);
                 return;
-            }
+            }   // add the Invitation
             is_.AddInvitation(Invitation.InvitationFactory.MakeInvitation(author_, recipients_.ToArray(), txtTitle_.Text, rtxtDescription_.Text));
-            ud_.UpdateSentInvitations();
-            ud_.UpdatePendingInvitations();
-            Hide();
+            ud_.UpdateSentInvitations();    // tell ud_ to update invitations
+            ud_.UpdatePendingInvitations(); //
+            Hide(); // hide the form
         }
-
-        public void Initialize()
-        {
-            txtAddRecipients_.Text = "";
-            rtxtDescription_.Text = "";
-            txtAddRecipients_.Text = "";
-            recipients_.Clear();
-            lbRecipients_.Items.Clear();
-        }
-
-        public void Show(Person t_author)
-        {
-            author_ = t_author;
-            Show();
-            Focus();
-        }
-
+        // when the cancel button is pressed
         private void btnCancel_Click(object sender, EventArgs e)
-        {
+        {   // hide the form
             Hide();
         }
-
+        // when the btnRemoveRecipent_ is pressed
         private void btnRemoveRecipent_Click(object sender, EventArgs e)
-        {
+        {   // try to remove the selected recipient from the list
             if (lbRecipients_.SelectedIndex == -1)
-                return;
+                return; // return if no item is selected
             Person databaseCall = pd_.CachedLinearSearch(lbRecipients_.Items[lbRecipients_.SelectedIndex] as string);
             if (databaseCall == null)
-                return;
+                return; // return if the person does not exist
             LinkedListNode<Person> test = recipients_.Find(databaseCall);
             if (test == null)
-                return;
-            recipients_.Remove(test);
-            lbRecipients_.Items.RemoveAt(lbRecipients_.SelectedIndex);
+                return; // return if person is not in the list
+            recipients_.Remove(test);   // remove the node
+            lbRecipients_.Items.RemoveAt(lbRecipients_.SelectedIndex);  // remove the label
         }
-
+        // when the btnAddRecipent_ is pressed
         private void btnAddRecipent_Click(object sender, EventArgs e)
-        {
+        {   // try to add a recipient
             Person databaseCall = pd_.BloomFilterSearch(txtAddRecipients_.Text);
             if (databaseCall == null)
-            {
+            {   // return if the person is not in the database
                 Error(ErrorCodes.RecipientNotFound);
                 return;
             }
             if (recipients_.Any(x => x.staticID == databaseCall.staticID))
-            {
+            {   // return if the person is already in the list 
                 Error(ErrorCodes.RecipientInList);
                 return;
             }
-            txtAddRecipients_.Text = "";
-            lbRecipients_.Items.Add(databaseCall.UserName);
-            recipients_.AddLast(databaseCall);
+            txtAddRecipients_.Text = "";    // clear the txtAddRecipients_ field
+            lbRecipients_.Items.Add(databaseCall.UserName); // add person to the list box
+            recipients_.AddLast(databaseCall);  // add person to the list
         }
-
+        // when the form is closing
         private void NewInvitationDialogue_FormClosing(object sender, FormClosingEventArgs e)
-        {
+        {   // if the user tried to close the form
             if(e.CloseReason == CloseReason.UserClosing)
-            {
+            {   // cancel the request
                 e.Cancel = true;
-                Hide();
+                Hide(); // hide the form
             }
         }
-
+        // when lbRecipients_ is double clicked, show info on the recipient
         private void lbRecipients__DoubleClick(object sender, EventArgs e)
-        {
+        {   // return if no entry is selected
             if (lbRecipients_.SelectedIndex == -1)
-                return;
+                return; // request ud_ to set and open the dialogue
             ud_.LoadFriendInspectorDialogue(lbRecipients_.Items[lbRecipients_.SelectedIndex] as string);
         }
     }

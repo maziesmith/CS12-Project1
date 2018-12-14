@@ -8,7 +8,7 @@ namespace CS12_Project_1
 {
     static class Program
     {
-        private static string PD_DEBUGPATH = @"Z:\hmnt\CS12 Project 1\";
+        private static string PD_DEBUGPATH = @"D:\CS12 Project 1";
         private static string PD_FILENAME = "AIDAN BIRD - HeadEssayData";
         private static readonly PersonsDatabase pd = new PersonsDatabase(PD_DEBUGPATH,null);
         private static readonly LoginSystem ls = new LoginSystem(pd);

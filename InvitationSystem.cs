@@ -7,12 +7,11 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CS12_Project_1
-{
-    // A data oriented Invitation object 
+{   // INVITATION
     [Serializable()]
     public class Invitation : ISerializable
-    {
-        // FACTORY
+    {   // FACTORY Pattern
+        // Makes a new invitation object, 
         public static class InvitationFactory
         {
             public static Invitation MakeInvitation(
@@ -77,7 +76,7 @@ namespace CS12_Project_1
                 author = (Person)info.GetValue("Author",typeof(Person));
             }
             catch
-            {
+            {   // error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
             }
         }
@@ -89,21 +88,24 @@ namespace CS12_Project_1
             author.sentInvitations_.Remove(this);
         }
         // METHOD MEMBERS
+        // returns an immutable recipients_ list
         public IReadOnlyList<Person> GetRecipients
         {
             get { return recipients_; }
         }
+        // returns the author's username
         public string AuthorUsername
         {
             get { return author.UserName; }
         }
+        // returns the author's static ID
         public ulong AuthorStaticID
         {
             get { return author.staticID; }
         }
+        // count down by one minute; return true if the invitation should be deleted
         public bool UpdateTime()   
-        {   // count down by one minute; return true if the invatation should be deleted
-            //author.sentInvitations_.Remove(this);
+        {   
             return (lifetime_--) == 0;
         }
         // serializer
@@ -120,11 +122,12 @@ namespace CS12_Project_1
                 info.AddValue("Timestamp",timestamp);
             }
             catch
-            {
+            {   // crash and burn on error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
             }
         }
     }
+    // INVITATION SYSTEM
     // an object that manages invatations
     public class InvitationSystem
     {   // DATA MEMBERS
@@ -175,8 +178,8 @@ namespace CS12_Project_1
                     node.Value.Remove();
                     if(node.Value.AuthorStaticID == ud_.CurrentUserStaticID)
                     {
-                        ud_.UpdatePendingInvitations();
-                        ud_.UpdateSentInvitations();
+                        ud_.UpdatePendingInvitations(); // tell the user dialog to update the invitations list
+                        ud_.UpdateSentInvitations();    
                     }
                     activeInvitations_.Remove(node);    // delete node
                     node = swap.Next;   // goto next node 
@@ -188,8 +191,8 @@ namespace CS12_Project_1
         // add invitation(s) to the list
         public void AddInvitation(params Invitation[] t_next)
         {
-            foreach (Invitation x in t_next)    // add all non-null invitations
-                if(x != null)
+            foreach (Invitation x in t_next)    
+                if(x != null)   // add all non-null invitations
                     activeInvitations_.AddLast(x);
         }
     }

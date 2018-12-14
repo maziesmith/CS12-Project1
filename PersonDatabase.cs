@@ -8,10 +8,10 @@ namespace CS12_Project_1
 {
     public class PersonsDatabase : IDatabase<List<Person>>
     {
-        private uint nextPersonId_ = 0;
-        public const int INITAL_SIZE = 10;
-        public const int BLOOMFILTER_STARTING_SIZE = 10;
-        public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);
+        private uint nextPersonId_ = 0; // the id of the next person; goes up by 1 everytime a new person is created
+        public const int INITAL_SIZE = 10;  // inital size of Data<Person>
+        public const int BLOOMFILTER_STARTING_SIZE = 10;    // inital size of the bloom filter
+        public BloomFilter<string> bloomFilter = new BloomFilter<string>(BLOOMFILTER_STARTING_SIZE);    // a bloom filter object 
         private Person cached_ = null;  // person object cache
         private string cachedName_ = null;  // name cache
         private Dictionary<string, bool> cityTable_;
@@ -117,8 +117,7 @@ namespace CS12_Project_1
         /// <param name="t_userName"></param>
         /// <returns></returns>
         public Person CachedLinearSearch(string t_userName)
-        {
-            // cache gives a result very quickly;
+        {   // cache gives a result very quickly;
             // but only after doing a liner search once.
             if(cached_ != null
             && cached_.UserName == t_userName)
@@ -129,16 +128,18 @@ namespace CS12_Project_1
             foreach(Person p in data)
             {
                 if (p.UserName == t_userName)
-                {   // update the cache
+                {   // update the cache to be p
                     cached_ = p;
-                    return p;
+                    return p;   // return p
                 }
             }
-            // update the cache
+            // update the cache to be null
             cached_ = null;
             cachedName_ = t_userName;
             return null;
         }
+        // TODO: unused func, delete this
+        /*
         private bool RemovePerson(string t_userName)
         {
             Person target;
@@ -149,21 +150,28 @@ namespace CS12_Project_1
             ClearCache();
             return true;
         }
+        */
+        // write the database state to file
         public bool Save(string t_fileName)
-        {
+        {   // write to file
             return base.WriteFile(t_fileName, data);
         }
+        // initalize the database by loading inportant files and creating new ones
         public void Initalize(string t_databaseFileName)
         {
-            if(!NewFile(t_databaseFileName))
-                LoadFile(t_databaseFileName);
-            if(data == null)
+            if(!NewFile(t_databaseFileName))    // try to create a new database file to save the database state to
+                LoadFile(t_databaseFileName);   // load the file if it already exists
+            if(data == null)    // if data<Person> is null, instantiate a new T where T is a List<Person>
                 base.Initalize();
-            FullRebuildBloomFilter();
-            FullRebuildCityTable();
+            FullRebuildBloomFilter();   // rebuild all tables
+            FullRebuildCityTable();     
             FullRebuildInterestTable();
-            ClearCache();
+            ClearCache();   // clear cache
         }
+        // CONSTRUCTOR
+        // params:
+        //  string t_databaseRoot;  database root path
+        //  ISystem t_parent;   not used; TODO: Delete this
         public PersonsDatabase(string t_databaseRoot, ISystem t_parent) : base(t_databaseRoot, Encoding.BLOB, t_parent)
         {
         }

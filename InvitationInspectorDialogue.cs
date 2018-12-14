@@ -6,49 +6,53 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CS12_Project_1
-{
+{   // INVITATION INSPECTOR DIALOGUE
+    // shows info about an invitation object
     public class InvitationInspectorDialogue : Form
-    {
+    {   // DATA MEMBERS
+        // form elements
+        private RichTextBox rtxtDescription_;
         private GroupBox groupBox3_;
+        private GroupBox gbDescription_;
+        private GroupBox gbHeader_;
         private ListBox lbRecipients_;
         private TextBox txtBox1_;
+        private TextBox textBox2_;
         private Button button3_;
         private Button button4_;
-        private GroupBox gbDescription_;
-        private TextBox textBox2_;
-        private RichTextBox rtxtDescription_;
         private Button button1_;
         private Button button2_;
         private Button btnExit_;
-        private GroupBox gbHeader_;
-        private UserDialogue ud_;
-
+        // other data members
+        private UserDialogue ud_; // a reference to a user dialogue object
         public InvitationInspectorDialogue(in UserDialogue t_ud)
-        {
+        {   // initalize all data members
             ud_ = t_ud;
-            InitializeComponent();
+            InitializeComponent();  // initalize form elements
         }
+        // setup all form fields and then show this form
         public void Show(in Invitation t_next)
         {
-            gbHeader_.Text = t_next.title;
-            rtxtDescription_.Text = t_next.body;
-            lbRecipients_.Items.Clear();
-            if(t_next.GetRecipients != null)
-                foreach (Person x in t_next.GetRecipients)
+            gbHeader_.Text = t_next.title;  // set the header to t_next's title
+            rtxtDescription_.Text = t_next.body;    // set rtxtDescription_ to show the invitation body
+            lbRecipients_.Items.Clear();    // clear lbRecipients_
+            if (t_next.GetRecipients != null)
+                foreach (Person x in t_next.GetRecipients)  // show all recipients
                     lbRecipients_.Items.Add(x.UserName);
-            Show();
-            Focus();
+            Show(); // show the form
+            Focus(); // bring this form info focus
         }
         private void btnExit__Click(object sender, EventArgs e)
-        {
+        {   // hide this form
             Hide();
         }
         private void lbRecipients__DoubleClick(object sender, EventArgs e)
-        {
+        {   // show info about a person object
             if (lbRecipients_.SelectedIndex == -1)
-                return;
-            ud_.LoadFriendInspectorDialogue(lbRecipients_.Items[lbRecipients_.SelectedIndex] as string);
+                return; // ensure that the user has selected an item in the list
+            ud_.LoadFriendInspectorDialogue(lbRecipients_.Items[lbRecipients_.SelectedIndex] as string);    // show info about the selected person
         }
+        // initalize the form
         private void InitializeComponent()
         {
             this.gbHeader_ = new System.Windows.Forms.GroupBox();
@@ -199,12 +203,14 @@ namespace CS12_Project_1
             this.ResumeLayout(false);
 
         }
+        // EVENTS
+        // called when the form is closing
         private void InvitationInspectorDialogue_FormClosing(object sender, FormClosingEventArgs e)
         {
             if(e.CloseReason == CloseReason.UserClosing)
-            {
-                e.Cancel = true;
-                Hide();
+            {   // ignore the close event
+                e.Cancel = true;    
+                Hide(); // hide the form
             }
         }
     }

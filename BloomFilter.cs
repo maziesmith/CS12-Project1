@@ -8,18 +8,22 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace CS12_Project_1
 {
-    // impl based on <https://blog.michaelschmatz.com/2016/04/11/how-to-write-a-bloom-filter-cpp/>
-    // bloom filter 
+    // implementation and idea based on <https://blog.michaelschmatz.com/2016/04/11/how-to-write-a-bloom-filter-cpp/>
+    // BLOOM FILTER
+    // a probabilistic and space-efficient data structure 
+    // that can test if an object is present in the strcuture
+    // in O(1) time. This test can result in false positives
+    // but never false negatives. Adding new elements to the
+    // structure is O(1) time operation.
     public class BloomFilter<T>
     {
         // DATA MEMBERS
         const int HASH_COUNT = 4;   // number of hashes per entry
-        private List<bool> data_;   // logical list of entries
+        private List<bool> data_;   // logical list of entries 
         public int Size             // return the number of elements in the logical array
         {
             get { return data_.Count; }
         }
-
         // FUNCTIONAL METHODS 
         // extract upper and lower words from an int
         // params:
@@ -31,7 +35,6 @@ namespace CS12_Project_1
             // merge halfwords into 2 words
             return Tuple.Create(BitConverter.ToUInt16(bytes, 0),BitConverter.ToUInt16(bytes, 2));
         }
-
         // map the nth hash to an index in the logical list
         // params:
         //  uint t_n;   cardinality of the nth hash
@@ -47,15 +50,13 @@ namespace CS12_Project_1
             // merge the hashes and compute the array index
             return (t_hashA + t_n * t_hashB) % t_size;
         }
-
         // CONSTRUCTOR
         // params:
-        //  int size;
+        //  int size;   the starting capacity
         public BloomFilter(int size)
         {
             data_ = new List<bool>(new bool[size * HASH_COUNT]);
         }
-
         // OTHER METHODS
         // add a new element to the bloom filter.
         // params:
@@ -70,7 +71,6 @@ namespace CS12_Project_1
             }
             return t_next;  // return t_next
         }
-
         // test if t_next is in the bloom filter;
         // true = t_next could be in the filter;
         // false = t_next definitely not in the filter.

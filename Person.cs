@@ -8,29 +8,33 @@ using System.Threading.Tasks;
 
 namespace CS12_Project_1
 {
+    // FACTORY PATTERN 
     public static class PersonFactory
-    {
+    {   // make a person object
         public static Person BuildPerson(
-            string t_firstName,
+            string t_firstName, 
             string t_lastName,
             string t_city,
             string t_userName,
             string t_password,
             uint t_id,
             ISystem t_caller)
-        {
+        {   // test if any input is null or empty, return null if true
             if (string.IsNullOrWhiteSpace(t_firstName)
             || string.IsNullOrWhiteSpace(t_lastName)
             || string.IsNullOrWhiteSpace(t_city)
             || string.IsNullOrWhiteSpace(t_userName)
             || string.IsNullOrWhiteSpace(t_password))
                 return null;
+            // otherwise return a new person
             return new Person(t_firstName, t_lastName, t_city, t_userName, t_id, t_password);
         }
     }
+    // PERSON
     [Serializable()]    //Person is serializable
     public class Person : ISerializable
     {   // Person class contains data about a person; Person class implements ISerializable
+        // DATA MEMBERS 
         private const int FRIENDS_LIST_INITAL_SIZE = 5;
         private const int INTERESTS_LIST_INITAL_SIZE = 5;
         private string firstName_;  // Person's fist name
@@ -41,19 +45,20 @@ namespace CS12_Project_1
         public readonly ulong staticID;
         public readonly List<Person> friends_ = new List<Person>(FRIENDS_LIST_INITAL_SIZE); // pre-alloc friends list
         public readonly List<string> interests_ = new List<string>();
-
         public readonly List<Invitation> pendingInvitations_;
         public readonly List<Invitation> sentInvitations_;   
-
         public readonly Password password;  // Person's password object
         public ulong ID
         {   // get/set the user ID
             get { return id_; }
             set { id_ = value; }
         }
+        // METHOD MEMBERS
+        // get a list of friends starting at index t_start and whos size can be up to t_amt
         public List<Person> GetFriends(int t_start, int t_amt)
-        {
-            if(friends_.Count < 1
+        {   // if friends_ is empty or unavailable, return null
+            if(friends_ == null
+            || friends_.Count < 1
             || t_start >= friends_.Count)
                 return null;
             List<Person> output = new List<Person>(friends_.Count);
@@ -65,12 +70,13 @@ namespace CS12_Project_1
             }
             return output;
         }
+        // get a friend using an index
         public Person GetFriend(int t_index)
         {
             if (t_index > friends_.Count
             || t_index < 0)
-                return null;
-            return friends_[t_index];
+                return null;    // t_index is invalid, return null
+            return friends_[t_index];   // return the friend at the index
         }
         public string FirstName
         {   // get/set the user's first name
@@ -92,13 +98,22 @@ namespace CS12_Project_1
             get { return userName_; }
             set { userName_ = value; }
         }
+        // CONSTRUCTOR
+        // params:
+        //  string t_firstName; first name
+        //  string t_lastName; last name
+        //  string t_city;   city
+        //  string t_userName; username
+        //  ulong t_id;  id
+        //  string t_password; password
         public Person(string t_firstName, string t_lastName, string t_city, string t_userName, ulong t_id, string t_password)
-        {   // Person constructor;
+        {
+            // TODO: remove this
             if (t_firstName == null
             || t_lastName == null
             || t_city == null
             || t_userName == null
-            || t_password == null)  // test if any string parameter is null; if true, assert
+            || t_password == null)  // test if any string parameter is null; if true, error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_CONSTRUCT_FAIL);
             // set all data members
             ID = t_id;
@@ -128,26 +143,27 @@ namespace CS12_Project_1
                 sentInvitations_ = (List<Invitation>)info.GetValue("SentInvitations", typeof(List<Invitation>));
             }
             catch
-            {   // assert on error
+            {   // error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_READ_FAIL);
             }
         }
+        // add interest(s) to interest list
         public void AddInterest(params string[] t_next)
-        {
+        {   // add interests that are not in the list already
             interests_.AddRange(t_next.Where(s => !string.IsNullOrWhiteSpace(s) && !interests_.Contains(s)));
         }
+        // add friend
         public bool AddFriend(Person t_next)
         {
-            if (t_next == null)
-                return false;
+            if (t_next == null) // if friend is null then return false
+                return false;   // false = error
             foreach(Person p in friends_)
-            {
-                //if(p.staticID == t_next.staticID)
+            {   // if t_next is already in the list, do not add it and return false
                 if(p.staticID == t_next.staticID)
                     return false;
             }
-            friends_.Add(t_next);
-            return true;
+            friends_.Add(t_next);   // add t_next to the list
+            return true;    // true = success
         }
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {   // called when saving a person object to disk
@@ -166,27 +182,38 @@ namespace CS12_Project_1
                 info.AddValue("SentInvitations",sentInvitations_);
             }
             catch
-            {   // assert on error
+            {   // error
                 ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.PERSON_SERIAL_FAIL);
             }
         }
     }
+    // PASSWORD
     [Serializable()]
     public struct Password
-    {
+    {   // DATA MEMBERS
         private byte[] hash_;   // stores the hash of salted text
         private byte[] salt_;   // stores the salt
         private const uint HASHLEN = 32;    // length of hash in bytes
+        public const int MIN_PASSWORD_LENGTH = 9;
+        public const int MIN_PASSWORD_REP_CHARS = 3;
+        public enum ValidatePasswordStatus
+        {   // return values indicating any problems with testing passwords
+            badRepChars,
+            badPasswdLen,
+            noError
+        }
+        // CONSTRUCTOR
         public Password(string t_clearTextPassword)
-        {   // Password constructor; sets up the password hash for authentication
+        {   // set up the password hash for authentication 
             hash_ = new byte[HASHLEN];  // make a new byte array to store the password hash
             salt_ = new byte[t_clearTextPassword.Length];   // make a new byte array to store the salt
             SetPassword(t_clearTextPassword);   // hash and store the password
         }
+        // gets the hash of the password and save it to the hash_ member
         public void SetPassword(string t_clearTextPassword)
-        {   // gets the hash of the password and save it to the hash_ member
+        {   
             byte[] saltedText = new byte[t_clearTextPassword.Length + salt_.Length];    // make a new array to hold the salted text
-            int i = 0;
+            int i = 0;  // loop counter
             for (; i < t_clearTextPassword.Length; i++)
                 saltedText[i] = (byte)t_clearTextPassword[i];   // memcpy t_clearTextPassword to the saltedText buffer
             using (RNGCryptoServiceProvider csprng = new RNGCryptoServiceProvider())    // make a new csprng object for generating the salt
@@ -200,19 +227,12 @@ namespace CS12_Project_1
                 hash_ = algo.ComputeHash(saltedText);   // compute the hash of the saltedtext using the SHA256 algorithm; save the hash to the hash_ member;
             }   // destroy the algo object after use
         }
-        public const int MIN_PASSWORD_LENGTH = 9;
-        public const int MIN_PASSWORD_REP_CHARS = 3;
-        public enum ValidatePasswordStatus
-        {
-            badRepChars,
-            badPasswdLen,
-            noError
-        }
+        // validate a password
         public static ValidatePasswordStatus ValidatePasswordFormat(string t_clearTextPassword)
         {
             if (t_clearTextPassword.Length < MIN_PASSWORD_LENGTH)
-                return ValidatePasswordStatus.badPasswdLen;
-            int limit;
+                return ValidatePasswordStatus.badPasswdLen; // invalidate the test password if it's length is less then the min length
+            int limit;  // loop limit
             for (int i = 0; i < t_clearTextPassword.Length - MIN_PASSWORD_REP_CHARS; i++)
             {
                 char test = t_clearTextPassword[i];
@@ -226,8 +246,9 @@ namespace CS12_Project_1
             }
             return ValidatePasswordStatus.noError;
         }
+        // test hash_ against the salted hash of t_clearTextPassword
         public bool TestPassword(string t_clearTextPassword)
-        {   // test hash_ against the salted hash of t_clearTextPassword
+        {   
             byte[] saltedTest = new byte[t_clearTextPassword.Length + salt_.Length];
             byte[] testHash;
             int i = 0;
@@ -244,6 +265,7 @@ namespace CS12_Project_1
                     return false;
             return true;
         }
+        //
         private Password(SerializationInfo info, StreamingContext context)
         {
             hash_ = null;

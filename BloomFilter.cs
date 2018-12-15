@@ -8,7 +8,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace CS12_Project_1
 {
+    // NOTE
     // implementation and idea based on <https://blog.michaelschmatz.com/2016/04/11/how-to-write-a-bloom-filter-cpp/>
+    //
     // BLOOM FILTER
     // a probabilistic and space-efficient data structure 
     // that can test if an object is present in the strcuture
@@ -16,8 +18,7 @@ namespace CS12_Project_1
     // but never false negatives. Adding new elements to the
     // structure is O(1) time operation.
     public class BloomFilter<T>
-    {
-        // DATA MEMBERS
+    {   // DATA MEMBERS
         const int HASH_COUNT = 4;   // number of hashes per entry
         private List<bool> data_;   // logical list of entries 
         public int Size             // return the number of elements in the logical array

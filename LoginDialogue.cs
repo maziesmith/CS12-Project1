@@ -14,7 +14,7 @@ namespace CS12_Project_1
         private TextBox txtAuthPass_; 
         private Button btnAuthSubmit_;
         private Button btnAuthReg_;
-        private Panel panel1;
+        private Panel pnl1_;
         private Label lblHeader;
         private Label lblInfoAuth2_;  
         private Label lblInfoAuth1_;
@@ -28,7 +28,7 @@ namespace CS12_Project_1
             signupRequest,
             loginSuccess
         }
-        private enum Errno  
+        private enum Errors  
         {   // error codes
             emptyField,
             badAuth
@@ -37,10 +37,8 @@ namespace CS12_Project_1
         // params:
         //  ISystem t_parent;   parent object to send signals to 
         //  ref LoginSystem t_ls;   a reference to a login system
-        //  ref LoginDialogue t_ld;     a reference to a login dialogue     TODO: remove this
-        public LoginDialogue(ISystem t_parent, ref LoginSystem t_ls, ref LoginDialogue t_ld)
+        public LoginDialogue(ISystem t_parent, ref LoginSystem t_ls)
         {   // initialize all data members 
-            t_ld = this;    // TODO: remove this
             ls_ = t_ls;
             parent_ = t_parent;
             InitializeComponent();
@@ -54,15 +52,21 @@ namespace CS12_Project_1
             lblHeader.Text = "Sign In"; // set the header text to "Sign In"
             exitStatus = null;  // set the exit status to null
         }
-        private void Error(Errno t_errno)
+        // clear all input fields
+        public void ClearFields()
+        {
+            txtAuthPass_.Clear();
+            txtAuthUser_.Clear();
+        }
+        private void Error(Errors t_errno)
         {
             lblHeader.ForeColor = System.Drawing.Color.Red; // set the header forecolour to red
             switch(t_errno) // change the header text based on the error code
             {
-                case Errno.badAuth:     // the user entered incorrect credentials
+                case Errors.badAuth:     // the user entered incorrect credentials
                     lblHeader.Text = "Incorrect username or password.";
                     return;
-                case Errno.emptyField:  // the user did not fill in all fields
+                case Errors.emptyField:  // the user did not fill in all fields
                     lblHeader.Text = "All fields must be filled.";
                     return;
             }
@@ -79,31 +83,33 @@ namespace CS12_Project_1
             if(string.IsNullOrEmpty(txtAuthUser_.Text)
             || string.IsNullOrEmpty(txtAuthPass_.Text))
             {   // if any of the fields are empty, alert the user that they messed up
-                Error(Errno.emptyField);
+                Error(Errors.emptyField);
                 return;
             }
             if((nextLogin_ = ls_.Login(txtAuthUser_.Text, txtAuthPass_.Text)) == null)
             {   // if the login credentials are incorrect, alert the user that they messed up 
-                Error(Errno.badAuth);
+                Error(Errors.badAuth);
                 return;
             }
             parent_.Callback(Signals.loginSuccess,this);    // signal to the parent that the user logged in correctly
             exitStatus = ISystem.ExitStatus.noError;    // set the exit status to no error
-            Close();    // delete this form
         }
         // when btnAuthReg_ is pressed
         private void btnAuthReg__Click(object sender, EventArgs e)
         {
-            exitStatus = Signals.signupRequest; // set the exit status to sign up request
-            Close();    // delete this form
+            parent_.Callback(Signals.signupRequest,this);   // send sign up request to parent
         }
         // when this form is closing 
         private void LoginDialogue_FormClosing(object sender, FormClosingEventArgs e)
         {   // if the exit status is null, tell the parent that the user closed the form
-            if(exitStatus == null)
-                parent_.Callback(ISystem.ExitStatus.userClosed,this);
-            else    // tell the parent that this form is closing
-                parent_.Callback(exitStatus,this); 
+            if(e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                if (exitStatus == null)
+                    parent_.Callback(ISystem.ExitStatus.userClosed, this);
+                else    // tell the parent that this form is closing
+                    parent_.Callback(exitStatus, this);
+            }
         }
         // initialize the form 
         private void InitializeComponent()
@@ -114,9 +120,9 @@ namespace CS12_Project_1
             this.txtAuthPass_ = new System.Windows.Forms.TextBox();
             this.btnAuthSubmit_ = new System.Windows.Forms.Button();
             this.btnAuthReg_ = new System.Windows.Forms.Button();
-            this.panel1 = new System.Windows.Forms.Panel();
+            this.pnl1_ = new System.Windows.Forms.Panel();
             this.lblHeader = new System.Windows.Forms.Label();
-            this.panel1.SuspendLayout();
+            this.pnl1_.SuspendLayout();
             this.SuspendLayout();
             // 
             // lblInfoAuth1_
@@ -174,17 +180,17 @@ namespace CS12_Project_1
             // 
             // panel1
             // 
-            this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel1.Controls.Add(this.lblInfoAuth1_);
-            this.panel1.Controls.Add(this.txtAuthUser_);
-            this.panel1.Controls.Add(this.btnAuthSubmit_);
-            this.panel1.Controls.Add(this.btnAuthReg_);
-            this.panel1.Controls.Add(this.txtAuthPass_);
-            this.panel1.Controls.Add(this.lblInfoAuth2_);
-            this.panel1.Location = new System.Drawing.Point(12, 12);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(243, 98);
-            this.panel1.TabIndex = 6;
+            this.pnl1_.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnl1_.Controls.Add(this.lblInfoAuth1_);
+            this.pnl1_.Controls.Add(this.txtAuthUser_);
+            this.pnl1_.Controls.Add(this.btnAuthSubmit_);
+            this.pnl1_.Controls.Add(this.btnAuthReg_);
+            this.pnl1_.Controls.Add(this.txtAuthPass_);
+            this.pnl1_.Controls.Add(this.lblInfoAuth2_);
+            this.pnl1_.Location = new System.Drawing.Point(12, 12);
+            this.pnl1_.Name = "panel1";
+            this.pnl1_.Size = new System.Drawing.Size(243, 98);
+            this.pnl1_.TabIndex = 6;
             // 
             // lblHeader
             // 
@@ -199,12 +205,12 @@ namespace CS12_Project_1
             // 
             this.ClientSize = new System.Drawing.Size(268, 126);
             this.Controls.Add(this.lblHeader);
-            this.Controls.Add(this.panel1);
+            this.Controls.Add(this.pnl1_);
             this.Name = "LoginDialogue";
             this.Text = " ";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.LoginDialogue_FormClosing);
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
+            this.pnl1_.ResumeLayout(false);
+            this.pnl1_.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
         }

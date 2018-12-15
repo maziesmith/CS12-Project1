@@ -11,6 +11,7 @@ namespace CS12_Project_1
     {
         // DATA MEMBERS
         // FORM OBJECTS
+        private ToolStripMenuItem changeAccountInfoToolStripMenuItem;
         private ToolStripMenuItem newInvitationToolStripMenuItem_;
         private ToolStripMenuItem logoutToolStripMenuItem1_;
         private MenuStrip menuStrip1_;
@@ -29,6 +30,8 @@ namespace CS12_Project_1
         private ListBox lbReceivedInvitations_;
         private ListBox lbSentInvitations_;
         private ListBox lbPeopleInYourArea_;
+        private Button btnViewMore;
+        private Button btnViewAllFriends;
         private Label lblFriendsListNoFriends_;
         private Label lblTitleHomepage_;
         private Label lblFriendsOfFriendsListNoFriends_;
@@ -39,7 +42,8 @@ namespace CS12_Project_1
         private Label lblNoSentInvitations_;
         private Panel pnlMain_;
         // OTHER DATA MEMBERS
-        private InvitationInspectorDialogue iid_;
+        private InvitationInspectorDialogue iid_;   // a bunch of user interfaces
+        private ChangeInterestsDialogue cid_;
         private FriendInspectorDialogue fid_;
         private NewInvitationDialogue nid_;
         private InvitationSystem is_;
@@ -49,160 +53,196 @@ namespace CS12_Project_1
             friendsOfFriendsWithSameInterest = null,
             peopleSameCityAndInterest = null,
             peopleInSameCity = null;
+        private int viewFriendsListLoopCount = 0;
         private ISystem parent_;    // the parent object to send signals to
-        private User currentUser_;  // the current logged in user 
+        private Person currentUser_;  // the current logged in user 
         public enum ExitStatus  // a list of posible exit statuses
         {
             logout,
         }
         private object exitStatus_ = ExitStatus.logout; // set the default exit status
-
         // CONSTRUCTOR
         // params:
         //  ISystem t_parent;   the parent object ( HeadEssay object )
         //  ref PersonsDatabase t_pd;   a reference to the current  working person database
         public UserDialogue(ISystem t_parent, ref PersonsDatabase t_pd)
-        {
+        {   // setup all data members
             pd_ = t_pd;
             parent_ = t_parent;
             iid_ = new InvitationInspectorDialogue(this);
             fid_ = new FriendInspectorDialogue(this);
             is_ = new InvitationSystem(this, pd_);
             nid_ = new NewInvitationDialogue(this, is_, pd_);
-            is_.AddInvitation(pd_.Invitations.ToArray());
+            cid_ = new ChangeInterestsDialogue(this);
             InitializeComponent();
         }
+        // ensure that the user interfaces are deleted
         ~UserDialogue()
-        {
-            nid_.Dispose();
+        {   // delete all forms
+            iid_.Dispose();
             fid_.Dispose();
+            nid_.Dispose();
+            cid_.Dispose();
         }
         // METHOD MEMBERS
-        public ulong CurrentUserStaticID
+        // get the current user
+        public Person CurrentUser
         {
-            get { return currentUser_.userinfo.staticID; }
+            get => currentUser_;
         }
+        // update the friends of friends list
         public void UpdateFriendsOfFriendsList()
-        {
+        {   // make the list
             friendsOfFriendsList = GenerateUniqueFriendsOfFriends();
-            if(friendsOfFriendsList != null
+            if(friendsOfFriendsList != null // null check 
             && friendsOfFriendsList.Count > 0)
-            {
+            {   // add friends to the list
                 lbFriendsOfFriendsList_.Items.Clear();
                 friendsOfFriendsList.ForEach(x => lbFriendsOfFriendsList_.Items.Add(x.UserName));
                 lbFriendsOfFriendsList_.Show();
                 lblFriendsOfFriendsListNoFriends_.Hide();
             }
             else
-            {
+            {   // hide the list if there are no friends
                 lbFriendsOfFriendsList_.Hide();
-               lblFriendsOfFriendsListNoFriends_.Show();
+                lblFriendsOfFriendsListNoFriends_.Show();
             }
         }
+        // update-friends-of-friends-with-same-interest list
         public void UpdateFriendsOfFriendsWithSameInterest()
-        {
+        {   // make the list
             friendsOfFriendsWithSameInterest = GenerateListOfFriendsOfFriendsWithInterest(friendsOfFriendsList);
-            if(friendsOfFriendsWithSameInterest != null
+            if(friendsOfFriendsWithSameInterest != null // null check
             && friendsOfFriendsWithSameInterest.Count > 0)
-            {
+            {   // add friends to the list
                 lbFriendsWithSameInterest_.Items.Clear();
                 friendsOfFriendsWithSameInterest.ForEach(x => lbFriendsWithSameInterest_.Items.Add(x.UserName));
                 lbFriendsWithSameInterest_.Show();
                 lblFriendsWithSameInterestNoFriends_.Hide();
             }
             else
-            {
+            {   // hide the list if there are no friends
                 lbFriendsWithSameInterest_.Hide();
                 lblFriendsWithSameInterestNoFriends_.Show();
             }
         }
+        // update people in the same city and have the same interests list
         public void UpdatePeopleSameCityAndInterest()
-        {
+        {   // make the list
             peopleInSameCity = GenerateListOfPersonsInTheSameCity();
-            if(peopleInSameCity != null
+            if(peopleInSameCity != null // null check
             && peopleInSameCity.Count > 0)
-            {
+            {   // add friends to the list
                 lbPeopleInYourArea_.Items.Clear();
                 peopleInSameCity.ForEach(x => lbPeopleInYourArea_.Items.Add(x.UserName));
                 lbPeopleInYourArea_.Show();
                 lblPeopleInYourArea_.Hide();
             }
             else
-            {
+            {   // hide the list if there are no friends
                 lbPeopleInYourArea_.Hide();
                 lblPeopleInYourArea_.Show();
             }
         }
+        // update people in the same city list
         public void UpdatePeopleInSameCity()
-        {
+        {   // make the list
             peopleSameCityAndInterest = GenerateFriendsOfFriendsThatShareTheSameCityAndInterest();
-            if(peopleSameCityAndInterest != null
+            if(peopleSameCityAndInterest != null    // null check 
             && peopleSameCityAndInterest.Count > 0)
-            {
+            {   // add  people to the list
                 lbPeopleInYourAreaWithSimilarInterests_.Items.Clear();
                 peopleSameCityAndInterest.ForEach(x => lbPeopleInYourAreaWithSimilarInterests_.Items.Add(x.UserName));
                 lbPeopleInYourAreaWithSimilarInterests_.Show();
                 lblPeopleInYourAreaWithSimilarInterests_.Hide();
             }
             else
-            {
+            {   // hide if there are no people
                 lbPeopleInYourAreaWithSimilarInterests_.Hide();
                 lblPeopleInYourAreaWithSimilarInterests_.Show();
             }
-        } 
+        }
+        // update pending invitations list
         public void UpdatePendingInvitations()
-        {
-            if(currentUser_.userinfo.pendingInvitations_ != null
-            && currentUser_.userinfo.pendingInvitations_.Count > 0)
-            {
+        {   // null check
+            if(currentUser_.PendingInvitations != null
+            && currentUser_.PendingInvitations.Count > 0)
+            {   // add invitations to the list
                 lbReceivedInvitations_.Items.Clear();
-                currentUser_.userinfo.pendingInvitations_.ForEach(x => lbReceivedInvitations_.Items.Add(x.AuthorUsername));
+                currentUser_.PendingInvitations.ForEach(x => lbReceivedInvitations_.Items.Add(x.AuthorUsername));
                 lbReceivedInvitations_.Show();
                 lblNoReceivedInvitations_.Hide();
             }
             else
-            {
+            {   // hide if there are no invitations
                 lbReceivedInvitations_.Hide();
                 lblNoReceivedInvitations_.Show();
             }
         }
         public void UpdateSentInvitations()
-        {
-            if(currentUser_.userinfo.sentInvitations_ != null
-            && currentUser_.userinfo.sentInvitations_.Count > 0)
-            {
+        {   // null check
+            if(currentUser_.SentInvitations != null
+            && currentUser_.SentInvitations.Count > 0)
+            {   // add invitations to the list
                 lbSentInvitations_.Items.Clear();
-                currentUser_.userinfo.sentInvitations_.ForEach(x => lbSentInvitations_.Items.Add(x.AuthorUsername));
+                currentUser_.SentInvitations.ForEach(x => lbSentInvitations_.Items.Add(x.AuthorUsername));
                 lbSentInvitations_.Show();
                 lblNoSentInvitations_.Hide();
             }
             else
-            {
+            {   // hide if there are no invitations
                 lbSentInvitations_.Hide();
                 lblNoSentInvitations_.Show();
             }
         }
-        public void UpdateFriendsList()
+        // view friends in friends list, 5 friends at a time
+        private void ViewFriendsList()
         {
-            if(currentUser_.userinfo.friends_ != null
-            && currentUser_.userinfo.friends_.Count > 0)
+            const int PREVIEW_AMT = 5;
+            int limit = viewFriendsListLoopCount + PREVIEW_AMT; // set the loop limit
+            for(; viewFriendsListLoopCount < currentUser_.Friends.Count; viewFriendsListLoopCount++)
             {
+                if (viewFriendsListLoopCount == limit)  // test for the loop exit condition
+                    return; // exit
+                lbFriendsList_.Items.Add(currentUser_.Friends[viewFriendsListLoopCount].UserName);  // add item to list
+                viewFriendsListLoopCount++; // inc the loop counter
+            }
+        }
+        // view all friends
+        private void ViewAllFriends()
+        {   // clear lbFriendsList_
+            lbFriendsList_.Items.Clear();
+            currentUser_.Friends.ForEach(x => lbFriendsList_.Items.Add(x.UserName));    // populate lbFriendsList_ with all friends
+        }
+        // update friends list
+        public void UpdateFriendsList()
+        {   // do a null check
+            if(currentUser_.Friends != null
+            && currentUser_.Friends.Count > 0)
+            {   // update the friends list
                 lbFriendsList_.Items.Clear();
-                currentUser_.userinfo.friends_.ForEach(x => lbFriendsList_.Items.Add(x.UserName));
+                viewFriendsListLoopCount = 0;
+                ViewFriendsList();
                 lbFriendsList_.Show();
                 lblFriendsListNoFriends_.Hide();
             }
             else
-            {
+            {   // hide  if there are no friends
                 lbFriendsList_.Hide();
                 lblFriendsListNoFriends_.Show();
             }
         }
         // sets up form objects to display the currently logged in user's info 
         private void LoadUserContent()
-        {
-            Text = "USER: " + currentUser_.userinfo.UserName;
-            lblTitleHomepage_.Text = string.Format("Welcome {0} {1} to the HeadEssay!",currentUser_.userinfo.FirstName,currentUser_.userinfo.LastName);
+        {   // set the title
+            Text = "USER: " + currentUser_.UserName;
+            lblTitleHomepage_.Text = string.Format("Welcome {0} {1} to the HeadEssay!",currentUser_.FirstName,currentUser_.LastName);
+            // welcom the user
+            UpdateAllLists();   // update all lists
+        }
+        // update all lists
+        public void UpdateAllLists()
+        {   // clear all forms;
             UpdateFriendsList();
             UpdateFriendsOfFriendsList();
             UpdateFriendsOfFriendsWithSameInterest();
@@ -216,11 +256,11 @@ namespace CS12_Project_1
         {   
             List<Person> unique = new List<Person>(pd_.UserCount);  // person list
             bool[] memo = Enumerable.Repeat(false,pd_.UserCount).ToArray(); // logical memo table
-            memo[currentUser_.userinfo.ID] = true;  // add the current logged in user to the memo table
+            memo[currentUser_.ID] = true;  // add the current logged in user to the memo table
             Action<Person> MakeList = null;
             (MakeList = (Person t_target) =>
             {
-                foreach (Person p in t_target.friends_)
+                foreach (Person p in t_target.Friends)
                 {
                     if (memo[p.ID]) // check if p has been DFSed already; skip p if true
                         continue;
@@ -231,30 +271,30 @@ namespace CS12_Project_1
                         MakeList(p);    // recurse over p's friends list
                     }
                 }
-            })(currentUser_.userinfo);  // execute DFS, where the root node is the logged in user.
+            })(currentUser_);  // execute DFS, where the root node is the logged in user.
             return unique;  // return the return list
         }
+        // Generates a  list of friends of friends with the same interest
         private List<Person> GenerateListOfFriendsOfFriendsWithInterest(List<Person> t_set)
-        {
-            var sameInterest = new List<string>(pd_.UserCount);
+        {   // a dictionary to map interests to a list of person objects
             Dictionary<string,List<Person>> testSet = t_set
-                .Select(x => x.interests_)
+                .Select(x => x.Interests)
                 .SelectMany(y => y)
                 .Distinct()
                 .ToDictionary( z => z, z => new List<Person>(t_set.Count) );
             t_set.ForEach(
             p =>
             {
-                p.interests_.ForEach(i =>
+                p.Interests.ForEach(i =>
                 {
                     testSet[i].Add(p);
                 });
-            });
-            int max = 0;
-            List<Person> output = null;
+            }); // populate the dictionary
+            int max = 0;    // max size of each list in the dictionary
+            List<Person> output = null; // the ret value
             foreach(List<Person> p in testSet.Values)
             {
-                if(p.Count > max)
+                if(p.Count > max)   // pick the list with the largest size
                 {
                     output = p;
                     max = p.Count;
@@ -275,41 +315,41 @@ namespace CS12_Project_1
             pd_.ZeroOutInterestTable();
             Func<Person, bool> Filter = x =>   // a function used to test Person p against a filter
             {
-                if (x.staticID == currentUser_.userinfo.staticID)
-                    return false;
-                if (!pd_.CityTable[x.City])
-                    return false;
-                foreach(string s in x.interests_)
+                if (x.StaticID == currentUser_.StaticID)    // test static ids
+                    return false;   // fail
+                if (!pd_.CityTable[x.City]) //  test using the city table
+                    return false;   // fail
+                foreach(string s in x.Interests)    // test  using interests table 
                     if (pd_.InterestTable[s])
-                        return true;
-                return false;
+                        return true;    // fail
+                return false;   // success
             };
             // map logic 1 to the city and interests tables
             // to indicate what strings (city & interests) will
             // pass the filter when DFSing
-            pd_.CityTable[currentUser_.userinfo.City] = true;
-            currentUser_.userinfo.interests_.ForEach( (Action<string>)(x => 
+            pd_.CityTable[currentUser_.City] = true;
+            currentUser_.Interests.ForEach(x => 
             {
                 pd_.InterestTable[x] = true;
-            }));
+            });
             // DFS over all friends in each friends list
             Action<Person> MakeList = null; 
             (MakeList = (Person t_target) =>
             {
-                foreach (var p in t_target.friends_)    // search over all friends in t_target's friends list.
+                foreach (var p in t_target.Friends)    // search over all friends in t_target's friends list.
                 {
                     if (resultList.Count == SIZE_LIMIT)  // exit if size limit has been reached
                         return;
                     if (memo[p.ID]) // check if p has been DFSed already; skip p if true
                         continue;
                     memo[p.ID] = true;  // tag p with true indicating that p has been DFSed
-                    //if(!reservedStaticIDs.Contains(p.staticID)  // apply the search filters (city & interests)
+                    //if(!reservedStaticIDs.Contains(p.StaticID)  // apply the search filters (city & interests)
                     //&& pd_.)
                     if(Filter(p))
                         resultList.Add(p);  // add p to the return list
                     MakeList(p);    // recurse over p's friends list
                 }
-            })(currentUser_.userinfo);  // execute DFS, where the root node is the logged in user.
+            })(currentUser_);  // execute DFS, where the root node is the logged in user.
             if (resultList.Count == SIZE_LIMIT)
                 return resultList;  // return if size limit has been reached
             foreach(Person p in pd_.Data)
@@ -326,21 +366,21 @@ namespace CS12_Project_1
         // generate a list of up to 10 persons that are in the same city
         private List<Person> GenerateListOfPersonsInTheSameCity()
         {
-            const int OUTPUT_SIZE = 10;
+            const int OUTPUT_SIZE = 10; // pre allocated size for list
             var resultList = new List<Person>(OUTPUT_SIZE);
-            pd_.ZeroOutCityTable();
-            pd_.CityTable[currentUser_.userinfo.City] = true;
+            pd_.ZeroOutCityTable(); // zero the city table
+            pd_.CityTable[currentUser_.City] = true;    // set the inital state of the dictionary
             Func<Person, bool> Filter = x => 
             {
-                if (x.staticID == currentUser_.userinfo.staticID)
-                    return false;
-                if(!pd_.CityTable[x.City])
-                    return false;
-                if (currentUser_.userinfo.friends_.Contains(x))
-                    return false;
-                return true;
+                if (x.StaticID == currentUser_.StaticID) // test using static id
+                    return false;   // fail
+                if(!pd_.CityTable[x.City]) 
+                    return false;   // fail
+                if (currentUser_.Friends.Contains(x))  // test agains  friends 
+                    return false;   // fail
+                return true;    // success
             };
-            foreach(Person p in pd_.Data)
+            foreach(Person p in pd_.Data)   // do a linear search to obtain leftwover elements
                 if (resultList.Count == OUTPUT_SIZE)
                     return resultList;
                 else if(Filter(p))
@@ -350,101 +390,157 @@ namespace CS12_Project_1
         // gets the static IDs of all friends in the logged in user
         private ulong[] GetFriendsStaticIDs()
         {   // aggregate all static IDs; return as an array of unsigned longs ( quad words c: )
-            return currentUser_.userinfo.friends_.Select(x => x.staticID).ToArray();     
+            return currentUser_.Friends.Select(x => x.StaticID).ToArray();     
         }
         // load the next logged in user; display the form.
-        public bool AssignUser(Person t_user)
+        public bool AssignUser(in Person t_user)
         {
             if (t_user == null) // if the user is null; exit with error
                 return false;
-            currentUser_ = new User(t_user);    // set the current user
+            currentUser_ = t_user;    // set the current user
+            is_.AddInvitation(pd_.Invitations.ToArray());
             LoadUserContent();  // load the user's content
-            ShowDialog();   // display the form
             return true;    // exit with no errors
         }
-        // FORM METHODS & EVENT HANDLERS 
-        private void logoutToolStripMenuItem1_Click(object sender, EventArgs e)
+        // hide all forms
+        private void HideAllForms()
         {
-            Close();
+            iid_.Hide();
+            cid_.Hide();
+            fid_.Hide();
+            nid_.Hide();
         }
+        // FORM METHODS & EVENT HANDLERS 
+        // when the logout button is pressed
+        private void logoutToolStripMenuItem1_Click(object sender, EventArgs e)
+        {   // delete this form
+            HideAllForms();
+            Hide();
+            parent_.Callback(ExitStatus.logout, this);
+        }
+        // when the newInvitation button is pressed
         private void newInvitationToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            nid_.Initialize();
-            nid_.Show(currentUser_.userinfo);
+            nid_.Initialize();  // Initialize the New Invitation Tool
+            nid_.Show(currentUser_);   // display the New Invitation Tool
         }
+        // when a form object requests to show the Friend Inspector Dialogue
         public void LoadFriendInspectorDialogue(string t_username)  
         {
-            Person next = pd_.BloomFilterSearch(t_username);
-            if (next == null)
+            Person next = pd_.BloomFilterSearch(t_username);    // look for person using t_username
+            if (next == null)   // if the search failed, exit
                 return;
-            fid_.Show(next);
+            fid_.Show(next);    // show the Friend Inspector Dialogue
         }
-        public void LoadInvitationInspectorDialogue(Invitation t_next)
+        // when a form object requests to show the Invitation Inspector Dialogue
+        public void LoadInvitationInspectorDialogue(Invitation t_next, Person.InvitationContext t_context)
         {
-            if(t_next != null)
-                iid_.Show(t_next);
+            if(t_next != null)  // if t_next not null, show the Invitation Inspector Dialogue
+                iid_.Show(t_next, t_context);
         }
+        // when lbFriendsList_ is double clicked
         private void lbFriendsList__DoubleClick(object sender, EventArgs e)
         {
             if (lbFriendsList_.SelectedIndex == -1)
                 return;
             LoadFriendInspectorDialogue(lbFriendsList_.Items[lbFriendsList_.SelectedIndex] as string);
         }
-
+        // when lbSentInvitations_ is double clicked
         private void lbSentInvitations__DoubleClick(object sender, EventArgs e)
         {
-            if (lbSentInvitations_.SelectedIndex == -1)
-                return;
-            string invitationName = lbSentInvitations_.Items[lbSentInvitations_.SelectedIndex] as string;
-            if (invitationName == null)
-                return;
+            if (lbSentInvitations_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            string invitationName = lbSentInvitations_.Items[lbSentInvitations_.SelectedIndex] as string;   // get the string from the list box
+            if (invitationName == null) // null check
+                return; // fail
             ulong authorStaticID = ((Func<ulong>)(() =>
             {
                 Person test = pd_.BloomFilterSearch(invitationName);
-                return test == null ? 0 : test.staticID;
+                return test == null ? 0 : test.StaticID;
             }))();
             if (authorStaticID == 0)
-                return;
-            Invitation invitation = currentUser_.userinfo.sentInvitations_.FirstOrDefault(x => x.AuthorStaticID == authorStaticID);
-            LoadInvitationInspectorDialogue(invitation);
+                return; // fail
+            Invitation invitation = currentUser_.SentInvitations.FirstOrDefault(x => x.AuthorStaticID == authorStaticID);
+            LoadInvitationInspectorDialogue(invitation, Person.InvitationContext.sender);
         }
-
+        // when lbFriendsOfFriendsList_ is double clicked
         private void lbFriendsOfFriendsList__DoubleClick(object sender, EventArgs e)
         {
-            if (lbFriendsOfFriendsList_.SelectedIndex == -1)
-                return;
-            LoadFriendInspectorDialogue(lbFriendsOfFriendsList_.Items[lbFriendsOfFriendsList_.SelectedIndex] as string);
+            if (lbFriendsOfFriendsList_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            LoadFriendInspectorDialogue(lbFriendsOfFriendsList_.Items[lbFriendsOfFriendsList_.SelectedIndex] as string);    // load and show the friend inspector
         }
+        // when lbFriendsWithSameInterest_ is double clicked
         private void lbFriendsWithSameInterest__DoubleClick(object sender, EventArgs e)
         {
-            if (lbFriendsWithSameInterest_.SelectedIndex == -1)
-                return;
-            LoadFriendInspectorDialogue(lbFriendsWithSameInterest_.Items[lbFriendsWithSameInterest_.SelectedIndex] as string);
+            if (lbFriendsWithSameInterest_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            LoadFriendInspectorDialogue(lbFriendsWithSameInterest_.Items[lbFriendsWithSameInterest_.SelectedIndex] as string);    // load and show the friend inspector
         }
+        // when lbPeopleInYourArea_ is double clicked
         private void lbPeopleInYourArea__DoubleClick(object sender, EventArgs e)
         {
-            if (lbPeopleInYourArea_.SelectedIndex == -1)
-                return;
-            LoadFriendInspectorDialogue(lbPeopleInYourArea_.Items[lbPeopleInYourArea_.SelectedIndex] as string);
+            if (lbPeopleInYourArea_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            LoadFriendInspectorDialogue(lbPeopleInYourArea_.Items[lbPeopleInYourArea_.SelectedIndex] as string);    // load and show the friend inspector
         }
+        // when lbPeopleInYourAreaWithSimilarInterests_ is double clicked
         private void lbPeopleInYourAreaWithSimilarInterests__DoubleClick(object sender, EventArgs e)
         {
-            if (lbPeopleInYourAreaWithSimilarInterests_.SelectedIndex == -1)
-                return;
-            LoadFriendInspectorDialogue(lbPeopleInYourAreaWithSimilarInterests_.Items[lbPeopleInYourAreaWithSimilarInterests_.SelectedIndex] as string);
+            if (lbPeopleInYourAreaWithSimilarInterests_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            LoadFriendInspectorDialogue(lbPeopleInYourAreaWithSimilarInterests_.Items[lbPeopleInYourAreaWithSimilarInterests_.SelectedIndex] as string);    // load and show the friend inspector
         }
-        private void lbFriends_MouseClick(object sender, MouseEventArgs e)
+        // when changeAccountInfoToolStripMenuItem_ is clicked
+        private void changeAccountInfoToolStripMenuItem_Click(object sender, EventArgs e)
+        {   // show changeAccountInfo
+            cid_.Init();    // init  changeAccountInfo
+            cid_.Show();    // show the form
+        }
+        // when btnViewMore is clicked
+        private void btnViewMore_Click(object sender, EventArgs e)
+        {   // view up to 5 more friends 
+            ViewFriendsList();  
+        }
+        // when btnViewAllFriends_ is clicked
+        private void btnViewAllFriends_Click(object sender, EventArgs e)
+        {   // view all friends
+            ViewAllFriends();
+        }
+        // when lbReceivedInvitations_ is double clicked
+        private void lbReceivedInvitations__DoubleClick(object sender, EventArgs e)
         {
-
+            if (lbReceivedInvitations_.SelectedIndex == -1)    // test if user made a selection
+                return; // fail
+            string invitationName = lbReceivedInvitations_.Items[lbReceivedInvitations_.SelectedIndex] as string;   // get the string from the list box
+            if (invitationName == null) // null check
+                return; // fail
+            ulong authorStaticID = ((Func<ulong>)(() =>
+            {
+                Person test = pd_.BloomFilterSearch(invitationName);
+                return test == null ? 0 : test.StaticID;
+            }))();
+            if (authorStaticID == 0)
+                return; // fail
+            Invitation invitation = currentUser_.PendingInvitations.FirstOrDefault(x => x.AuthorStaticID == authorStaticID);
+            LoadInvitationInspectorDialogue(invitation, Person.InvitationContext.recipient);
         }
+        // when this form is about to close 
         private void UserDialogue_FormClosing(object sender, FormClosingEventArgs e)
-        {   // signal the network that the user closed the form
-            parent_.Callback(exitStatus_,this);
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;    // cancel the close request
+                Hide(); // hide the form
+            }
+            parent_.Callback(exitStatus_,this); // signal the network that the user closed the form
         }
+        // initialize the form
         private void InitializeComponent()
         {
             this.menuStrip1_ = new System.Windows.Forms.MenuStrip();
             this.newInvitationToolStripMenuItem_ = new System.Windows.Forms.ToolStripMenuItem();
+            this.changeAccountInfoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.logoutToolStripMenuItem1_ = new System.Windows.Forms.ToolStripMenuItem();
             this.gbMain_ = new System.Windows.Forms.GroupBox();
             this.pnlMain_ = new System.Windows.Forms.Panel();
@@ -470,6 +566,8 @@ namespace CS12_Project_1
             this.lblFriendsOfFriendsListNoFriends_ = new System.Windows.Forms.Label();
             this.lbFriendsOfFriendsList_ = new System.Windows.Forms.ListBox();
             this.lblTitleHomepage_ = new System.Windows.Forms.Label();
+            this.btnViewMore = new System.Windows.Forms.Button();
+            this.btnViewAllFriends = new System.Windows.Forms.Button();
             this.menuStrip1_.SuspendLayout();
             this.gbMain_.SuspendLayout();
             this.pnlMain_.SuspendLayout();
@@ -486,6 +584,7 @@ namespace CS12_Project_1
             // 
             this.menuStrip1_.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.newInvitationToolStripMenuItem_,
+            this.changeAccountInfoToolStripMenuItem,
             this.logoutToolStripMenuItem1_});
             this.menuStrip1_.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1_.Name = "menuStrip1_";
@@ -499,6 +598,13 @@ namespace CS12_Project_1
             this.newInvitationToolStripMenuItem_.Size = new System.Drawing.Size(96, 20);
             this.newInvitationToolStripMenuItem_.Text = "New Invitation";
             this.newInvitationToolStripMenuItem_.Click += new System.EventHandler(this.newInvitationToolStripMenuItem_Click);
+            // 
+            // changeAccountInfoToolStripMenuItem
+            // 
+            this.changeAccountInfoToolStripMenuItem.Name = "changeAccountInfoToolStripMenuItem";
+            this.changeAccountInfoToolStripMenuItem.Size = new System.Drawing.Size(63, 20);
+            this.changeAccountInfoToolStripMenuItem.Text = "Interests";
+            this.changeAccountInfoToolStripMenuItem.Click += new System.EventHandler(this.changeAccountInfoToolStripMenuItem_Click);
             // 
             // logoutToolStripMenuItem1_
             // 
@@ -515,7 +621,7 @@ namespace CS12_Project_1
             this.gbMain_.Size = new System.Drawing.Size(877, 551);
             this.gbMain_.TabIndex = 1;
             this.gbMain_.TabStop = false;
-            this.gbMain_.Text = "gbMain";
+            this.gbMain_.Text = "HeadEssay";
             // 
             // pnlMain_
             // 
@@ -559,6 +665,7 @@ namespace CS12_Project_1
             this.lbReceivedInvitations_.Name = "lbReceivedInvitations_";
             this.lbReceivedInvitations_.Size = new System.Drawing.Size(199, 212);
             this.lbReceivedInvitations_.TabIndex = 1;
+            this.lbReceivedInvitations_.DoubleClick += new System.EventHandler(this.lbReceivedInvitations__DoubleClick);
             // 
             // groupBox4_
             // 
@@ -678,6 +785,8 @@ namespace CS12_Project_1
             // 
             // gbFriends_
             // 
+            this.gbFriends_.Controls.Add(this.btnViewAllFriends);
+            this.gbFriends_.Controls.Add(this.btnViewMore);
             this.gbFriends_.Controls.Add(this.lblFriendsListNoFriends_);
             this.gbFriends_.Controls.Add(this.lbFriendsList_);
             this.gbFriends_.Location = new System.Drawing.Point(657, 22);
@@ -701,7 +810,7 @@ namespace CS12_Project_1
             this.lbFriendsList_.FormattingEnabled = true;
             this.lbFriendsList_.Location = new System.Drawing.Point(6, 19);
             this.lbFriendsList_.Name = "lbFriendsList_";
-            this.lbFriendsList_.Size = new System.Drawing.Size(188, 459);
+            this.lbFriendsList_.Size = new System.Drawing.Size(188, 433);
             this.lbFriendsList_.TabIndex = 0;
             this.lbFriendsList_.DoubleClick += new System.EventHandler(this.lbFriendsList__DoubleClick);
             // 
@@ -742,6 +851,26 @@ namespace CS12_Project_1
             this.lblTitleHomepage_.Size = new System.Drawing.Size(89, 13);
             this.lblTitleHomepage_.TabIndex = 0;
             this.lblTitleHomepage_.Text = "lblTitleHomepage";
+            // 
+            // btnViewMore
+            // 
+            this.btnViewMore.Location = new System.Drawing.Point(119, 456);
+            this.btnViewMore.Name = "btnViewMore";
+            this.btnViewMore.Size = new System.Drawing.Size(75, 23);
+            this.btnViewMore.TabIndex = 5;
+            this.btnViewMore.Text = "View More";
+            this.btnViewMore.UseVisualStyleBackColor = true;
+            this.btnViewMore.Click += new System.EventHandler(this.btnViewMore_Click);
+            // 
+            // btnViewAllFriends
+            // 
+            this.btnViewAllFriends.Location = new System.Drawing.Point(38, 456);
+            this.btnViewAllFriends.Name = "btnViewAllFriends";
+            this.btnViewAllFriends.Size = new System.Drawing.Size(75, 23);
+            this.btnViewAllFriends.TabIndex = 6;
+            this.btnViewAllFriends.Text = "View All";
+            this.btnViewAllFriends.UseVisualStyleBackColor = true;
+            this.btnViewAllFriends.Click += new System.EventHandler(this.btnViewAllFriends_Click);
             // 
             // UserDialogue
             // 

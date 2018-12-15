@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CS12_Project_1
 {   // IDATABASE<T> 
-    // an imcomplete class that contains abstractions over interfacing with c# file IO functions
+    // an abstract class that contains abstractions over interfacing with c# file IO functions
     public abstract class IDatabase<T> : ISystem where T : class, new()
     {   // DATA MEMBERS
         public enum Encoding
@@ -72,6 +72,7 @@ namespace CS12_Project_1
         // implementation for writing to a file; function behavior is selected based on the encoding state
         //  blob files use BinaryFormatter
         //  text files use StreamWriter
+        // an array of lambdas that take in a string parameter and return a boolean value
         private readonly Func<string, T, bool>[] writeFile_ =
         {
             //Write blob to file
@@ -89,7 +90,7 @@ namespace CS12_Project_1
                 }
                 catch
                 {   // error; STOP EVERYTHING alerting the programmer (me) that they messed up
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
                     return false;
                 }
                 return true;    // true = file written successfully
@@ -98,7 +99,7 @@ namespace CS12_Project_1
             (string t_path, T t_object) =>
             {
                 if(typeof(T) != typeof(string)) // error if T is not a string
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
                 if (!File.Exists(t_path))   // fail if the file does not exist
                     return false;   // false = fail
                 try
@@ -112,13 +113,14 @@ namespace CS12_Project_1
                 }
                 catch
                 {   // error; STOP EVERYTHING alerting the programmer (me) that they messed up
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_FAIL);
                     return false;
                 }
                 return true;    // true = file written successfully
             }   //Write text to file
         };
         // implementation for reading from a file; function behavior is selected based on the encoding state
+        // an array of lambdas that take in a string parameter and return an object
         private readonly Func<string, object>[] loadFile_ =
         {
             // load from a blob file
@@ -135,8 +137,7 @@ namespace CS12_Project_1
                     }
                 }
                 catch
-                {   
-                    // return null if any errors occur 
+                {   // return null if any errors occur 
                     return null;
                 }
             },
@@ -144,7 +145,7 @@ namespace CS12_Project_1
             (string t_path) =>
             {
                 if(typeof(T) != typeof(string)) // error if T is not a string
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_WRITE_TYPE_FAIL);
                 if (!File.Exists(t_path))
                     return null;    // return null if the file does not exist
                 try
@@ -155,13 +156,13 @@ namespace CS12_Project_1
                     }
                 }
                 catch
-                {   
-                    // return null if any errors occur 
+                {   // return null if any errors occur 
                     return null;
                 }
             }
         };  
         // implementation for creating a new file
+        // an array of lambdas that take in a string parameter and return a boolean value
         private readonly Func<string, bool>[] newFile_ =
         {
             // new blob file
@@ -175,7 +176,7 @@ namespace CS12_Project_1
                 }
                 catch
                 {   // error
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
                     return false;
                 }
                 return true;    // no error
@@ -186,13 +187,12 @@ namespace CS12_Project_1
                 if (File.Exists(t_path))
                     return false;
                 try
-                {
-                    //using (Stream fs = File.Create(string.Concat(t_path,FILE_EXT[(uint)Encoding.TEXT])));
+                {   // create a new file
                     using (Stream fs = File.Create(t_path));
                 }
                 catch
                 {   // error
-                    ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
+                    ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_NEW_FILE_FAIL);
                     return false;
                 }
                 return true;    // no error

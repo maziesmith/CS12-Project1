@@ -22,7 +22,7 @@ namespace CS12_Project_1
             Person retPerson_ = pd_.BloomFilterSearch(t_userName);  // the person object to be returned
             if (retPerson_ == null)
                 return null;    // if person is not found, return null;
-            return retPerson_.password.TestPassword(t_password)
+            return retPerson_.Password.TestPassword(t_password)
                 ? retPerson_    // if retPerson_'s password is the same as t_password return retPerson_
                 : null; // otherwise return null 
             /* old

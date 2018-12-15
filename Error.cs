@@ -42,14 +42,13 @@ namespace CS12_Project_1
             "FATAL",
             "WARN",
         };
-
         // METHODS
         private static string GetErrorMsg(Prefixno prefixno, FatalErrno errno)
         {   // return a formatted error message
             return string.Concat(msgPrefix[(uint)prefixno], ": ", fatalErrMsg[(uint)errno]);
         }
-        public static void AssertFatalError(FatalErrno errno)
-        {   // assert with a formatted error message
+        public static void FatalError(FatalErrno errno)
+        {   // formatted error message
             throw new Exception(GetErrorMsg(Prefixno.FATAL, errno));
         }
         public static string AlertFatalError(FatalErrno errno)

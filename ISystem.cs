@@ -8,13 +8,25 @@ namespace CS12_Project_1
 {   // an abstract class that provides signal handling
     public abstract class ISystem
     {
-        public readonly ISystem parent = null;  // the parent object to send signals to
+        private ISystem parent_;  // the parent object to send signals to
         // CONSTRUCTOR
         public ISystem() { }    // when no parent is used
-        public ISystem(ISystem t_parent)
+        public ISystem(in ISystem t_parent)
         {   // set the parent object
-            parent = t_parent;
+            parent_ = t_parent;
         }
+        // change the parent object
+        public bool ChangeParent(in ISystem t_next)
+        {
+            if(t_next != null)
+            {
+                parent_ = t_next;
+                return true;    // success
+            }
+            return false;   // fail
+        }
+        // get the parent object 
+        public ISystem Parent { get => parent_; }
         public enum ExitStatus  // exit statuses that are used for signaling
         {
             noError,    // no errors occured

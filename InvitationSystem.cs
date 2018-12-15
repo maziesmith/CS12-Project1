@@ -8,12 +8,12 @@ using System.Windows.Forms;
 
 namespace CS12_Project_1
 {   // INVITATION
-    [Serializable()]
+    [Serializable()]    // invitation is serializable
     public class Invitation : ISerializable
     {   // FACTORY Pattern
-        // Makes a new invitation object, 
+        // this factory must be used to instantiate new invitations
         public static class InvitationFactory
-        {
+        {   // Makes a new invitation object
             public static Invitation MakeInvitation(
                 Person t_author, 
                 Person[] t_recipients,
@@ -25,9 +25,11 @@ namespace CS12_Project_1
                     t_recipients,
                     t_title, 
                     t_body);
-                t_author.sentInvitations_.Add(output);
+                // add invitation to the author's sent invitations list
+                t_author.AddInvitations(Person.InvitationContext.sender, output);
+                // add invitation to the recipients' pending invitations list
                 foreach (Person x in t_recipients)
-                    x.pendingInvitations_.Add(output);
+                    x.AddInvitations(Person.InvitationContext.recipient, output);
                 return output;
             }
         }
@@ -57,7 +59,7 @@ namespace CS12_Project_1
             title = t_title;
             body = t_body;
             lifetime_ = INIT_LIFETIME;
-            timestamp = Tuple.Create(
+            timestamp = Tuple.Create(   // create a time stamp
                 DateTime.Today.Month,
                 DateTime.Today.Day,
                 DateTime.Today.Hour);
@@ -77,20 +79,20 @@ namespace CS12_Project_1
             }
             catch
             {   // error
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
+                ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
             }
         }
         public void Remove()
         {
             if (recipients_ != null)
                 foreach (Person x in recipients_)
-                    x.pendingInvitations_.Remove(this);
-            author.sentInvitations_.Remove(this);
+                    x.PendingInvitations.Remove(this);
+            author.SentInvitations.Remove(this);
         }
         // METHOD MEMBERS
         // returns an immutable recipients_ list
         public IReadOnlyList<Person> GetRecipients
-        {
+        {   // get a readonly list of the recipients
             get { return recipients_; }
         }
         // returns the author's username
@@ -101,7 +103,7 @@ namespace CS12_Project_1
         // returns the author's static ID
         public ulong AuthorStaticID
         {
-            get { return author.staticID; }
+            get { return author.StaticID; }
         }
         // count down by one minute; return true if the invitation should be deleted
         public bool UpdateTime()   
@@ -123,7 +125,7 @@ namespace CS12_Project_1
             }
             catch
             {   // crash and burn on error
-                ErrorHandler.AssertFatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
+                ErrorHandler.FatalError(ErrorHandler.FatalErrno.DATABASE_READ_FAIL);
             }
         }
     }
@@ -176,7 +178,7 @@ namespace CS12_Project_1
                 {
                     swap = node;    // save node state
                     node.Value.Remove();
-                    if(node.Value.AuthorStaticID == ud_.CurrentUserStaticID)
+                    if(node.Value.AuthorStaticID == ud_.CurrentUser.StaticID)
                     {
                         ud_.UpdatePendingInvitations(); // tell the user dialog to update the invitations list
                         ud_.UpdateSentInvitations();    

@@ -3,53 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
 namespace CS12_Project_1
 {
     static class Program
     {
-        private static string PD_DEBUGPATH = @"D:\CS12 Project 1";
-        private static string PD_FILENAME = "AIDAN BIRD - HeadEssayData";
-        private static readonly PersonsDatabase pd = new PersonsDatabase(PD_DEBUGPATH,null);
-        private static readonly LoginSystem ls = new LoginSystem(pd);
-        private static readonly HeadEssay headEssay = new HeadEssay(pd,ls);
-
-        // The main entry point for the application.
+        private static string PD_DEBUGPATH = string.Concat(Directory.GetCurrentDirectory(),'\\');   // path of database file
+        private static string PD_FILENAME = "AIDAN BIRD - HeadEssayData";   // name of database file
+        private static PersonsDatabase pdRef;   // reference to person database
+        private static HeadEssay heRef; // reference to a head essay object
+        // entry point
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
+            Application.EnableVisualStyles(); 
             Application.SetCompatibleTextRenderingDefault(false);
-
-            pd.Initalize(PD_FILENAME);
-
-
-            pd.AddPerson("asdf","asdf","asdf","asdf","asdfasdfasdf");
-            pd.AddPerson("baz","baz","baz","alice","asdfasdfasdf");
-            pd.AddPerson("baz","baz","baz","tom","asdfasdfasdf");
-            pd.AddPerson("baz","baz","baz","bigbob","asdfasdfasdf");
-            
-            Person baz = pd.BloomFilterSearch("asdf");
-            Person bar = pd.BloomFilterSearch("tom");
-            Person foo = pd.BloomFilterSearch("alice");
-            Person bigbob = pd.BloomFilterSearch("bigbob");
-
-            baz.AddInterest("comsci","comeng","AI","ML");
-            bar.AddInterest("comsci","comeng","ML","IT");
-            foo.AddInterest("comeng","IT","osdev","comsec");
-            bigbob.AddInterest("comeng","webdev","blockchain","crypto");
-            baz.AddFriend(foo);
-            baz.AddFriend(bar);
-            foo.AddFriend(bar);
-            bigbob.AddFriend(foo);
-            bar.AddFriend(bigbob);
-            pd.FullRebuildInterestTable();
-            headEssay.ShowLoginForm();
+            PersonsDatabase pd = new PersonsDatabase(PD_DEBUGPATH,heRef);   // create important objects
+            LoginSystem ls = new LoginSystem(pd);
+            HeadEssay headEssay = new HeadEssay(pd, ls);
+            pdRef = pd; // setup references
+            heRef = headEssay;
+            pd.ChangeParent(heRef);
+            pd.Initalize(PD_FILENAME);  //Initalize the person database
+            pd.FullRebuildInterestTable();  // rebuild tables
+            headEssay.ShowLoginForm();  // show the login form 
+            Application.Run();  // run the application 
         }
+        // save the database and exit the program
         public static void Exit(ISystem.ExitStatus t_exitStatus)
         {
-            pd.Save(PD_FILENAME);
-            switch(t_exitStatus)
+            pdRef.Save(PD_FILENAME);    // save the database file 
+            switch(t_exitStatus)    // exit 
             {
                 case ISystem.ExitStatus.userClosed:
                     Application.Exit(); 

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CS12_Project_1
@@ -35,6 +33,7 @@ namespace CS12_Project_1
         private PersonsDatabase pd_;    // a reference to a person database to query person objects
         private UserDialogue ud_;   // a reference to a user dialogue object 
         private Person author_; // a reference to the author's person object
+        private int nonFriends, nonFriendsSameInterest;
         private enum ErrorCodes
         {   // error codes
             NoTitle = 0,
@@ -42,6 +41,7 @@ namespace CS12_Project_1
             NoDescription = 2,
             RecipientNotFound = 3,
             RecipientInList = 4,
+            NonFriendMax = 5
         }
         private readonly string[] errorMsg =
         {   // error messages
@@ -49,14 +49,14 @@ namespace CS12_Project_1
             "Recipents required.",
             "Description required.",
             "Could not add recipient, account not found.",
-            "Recipent is already in list."
+            "Recipent is already in list.",
+            "non-friend recipents are limit",
         };
         // CONSTRUCTOR
         // params:
         //  in UserDialogue t_ud;   reference to a user dialogue object
         //  in InvitationSystem t_is;   reference to an InvitationSystem object
         //  in PersonsDatabase t_pd;    reference to a person data base object
-        // TODO: use the in keyword more
         public NewInvitationDialogue(
             in UserDialogue t_ud,
             in InvitationSystem t_is,
@@ -299,15 +299,17 @@ namespace CS12_Project_1
         // Initialize important form elements
         public void Initialize()
         {
-            txtAddRecipients_.Text = "";    // delete all text in fields 
-            rtxtDescription_.Text = "";     // 
-            txtTitle_.Text = "";            // 
+            txtAddRecipients_.Clear();    // delete all text in fields 
+            rtxtDescription_.Clear();     // 
+            txtTitle_.Clear();            // 
             recipients_.Clear();            // delete all list box entries
             lbRecipients_.Items.Clear();    //
         }
         // show the form
         public void Show(Person t_author)
         {
+            nonFriends = 0;
+            nonFriendsSameInterest = 0;
             author_ = t_author; // set the author
             Show(); // show this form
             Focus();    // bring this form to focus
@@ -333,7 +335,7 @@ namespace CS12_Project_1
             }   // add the Invitation
             is_.AddInvitation(Invitation.InvitationFactory.MakeInvitation(author_, recipients_.ToArray(), txtTitle_.Text, rtxtDescription_.Text));
             ud_.UpdateSentInvitations();    // tell ud_ to update invitations
-            ud_.UpdatePendingInvitations(); //
+            ud_.UpdatePendingInvitations();
             Hide(); // hide the form
         }
         // when the cancel button is pressed
@@ -358,20 +360,43 @@ namespace CS12_Project_1
         // when the btnAddRecipent_ is pressed
         private void btnAddRecipent_Click(object sender, EventArgs e)
         {   // try to add a recipient
-            Person databaseCall = pd_.BloomFilterSearch(txtAddRecipients_.Text);
-            if (databaseCall == null)
+            const int NON_FRIENDS_LIMIT = 10;
+            const int NON_FRIENDS_SAME_INTEREST_LIMIT = 10;
+            Person nextRecipient = pd_.BloomFilterSearch(txtAddRecipients_.Text);
+            if (nextRecipient == null)
             {   // return if the person is not in the database
                 Error(ErrorCodes.RecipientNotFound);
                 return;
             }
-            if (recipients_.Any(x => x.staticID == databaseCall.staticID))
+            if (recipients_.Any(x => x.StaticID == nextRecipient.StaticID))
             {   // return if the person is already in the list 
                 Error(ErrorCodes.RecipientInList);
                 return;
             }
-            txtAddRecipients_.Text = "";    // clear the txtAddRecipients_ field
-            lbRecipients_.Items.Add(databaseCall.UserName); // add person to the list box
-            recipients_.AddLast(databaseCall);  // add person to the list
+            if(!ud_.CurrentUser.IsFriend(nextRecipient))
+            {
+                if (ud_.CurrentUser.Interests.Any(x => nextRecipient.Interests.Contains(x))) // TODO: make this more efficient
+                {
+                    if (nonFriendsSameInterest >= NON_FRIENDS_SAME_INTEREST_LIMIT)  // limit the number of non-friends that share a common interest 
+                    {
+                        Error(ErrorCodes.NonFriendMax);
+                        return;
+                    }
+                    nonFriendsSameInterest++;   // x and CurrentUser share a common interest
+                }
+                else
+                {
+                    if (nonFriends >= NON_FRIENDS_LIMIT)    // limit the number of non-friends
+                    {
+                        Error(ErrorCodes.NonFriendMax);
+                        return;
+                    }
+                    nonFriends++;
+                }
+            }
+            txtAddRecipients_.Clear();    // clear the txtAddRecipients_ field
+            lbRecipients_.Items.Add(nextRecipient.UserName); // add person to the list box
+            recipients_.AddLast(nextRecipient);  // add person to the list
         }
         // when the form is closing
         private void NewInvitationDialogue_FormClosing(object sender, FormClosingEventArgs e)
@@ -386,7 +411,8 @@ namespace CS12_Project_1
         private void lbRecipients__DoubleClick(object sender, EventArgs e)
         {   // return if no entry is selected
             if (lbRecipients_.SelectedIndex == -1)
-                return; // request ud_ to set and open the dialogue
+                return; 
+            // request ud_ to set and open the dialogue
             ud_.LoadFriendInspectorDialogue(lbRecipients_.Items[lbRecipients_.SelectedIndex] as string);
         }
     }
